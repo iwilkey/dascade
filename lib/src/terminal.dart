@@ -1,0 +1,172 @@
+/// Terminal backend abstraction for Dascade.
+///
+/// [DascadeTerminal] encapsulates all interaction with the native terminal via
+/// the `dart_console` package. It provides low-level control over screen
+/// output, cursor state, color attributes, and user input.
+///
+/// This class is intentionally imperative and stateful. Higher-level
+/// components (such as [DRenderer]) should treat it as a backend and
+/// avoid embedding rendering logic here.
+library;
+
+import 'dart:io';
+
+import 'package:dart_console/dart_console.dart';
+import 'package:dascade/src/ansi.dart';
+
+/// Low-level terminal interface used by Dascade.
+///
+/// This class owns the underlying [Console] instance and is responsible
+/// for configuring terminal modes, performing output, and reading input.
+///
+/// Only this class should directly depend on `dart_console`.
+/// 
+/// Original Author: Ian Wilkey
+/// 
+/// Contributing Authors: [name], [name], ...
+final class DascadeTerminal {
+
+  /// Creates a new terminal backend.
+  ///
+  /// The terminal is not modified until [enter] is called.
+  DascadeTerminal._internal();
+
+  static DascadeTerminal create() => DascadeTerminal._internal();
+
+  /// There should only be one instance of dart console; I don't want the rest of the project tightly coupled to it.
+  final Console _console = Console();
+
+  /// Current ANSI state of the terminal.
+  final DascadeAnsiState _ansi = DascadeAnsiState();
+
+  /// Is the terminal currently focused?
+  bool _entered = false;
+
+  /// Puts the terminal into a controlled rendering state.
+  ///
+  /// This typically clears the screen, hides the cursor, and prepares the
+  /// terminal for immediate-mode rendering.
+  ///
+  /// Calling [enter] more than once has no effect.
+  void enter() {
+    if(_entered) return;
+    _entered = true;
+    _console.clearScreen();
+    _console.hideCursor();
+    _ansi.reset(_console.write);
+  }
+
+  /// Restores the terminal to its original state.
+  ///
+  /// This should be called before the application exits to ensure the
+  /// terminal is left in a usable state.
+  void exit() {
+    if(!_entered) return;
+    _entered = false;
+    _ansi.reset(_console.write);
+    _console.showCursor();
+  }
+
+  /// Clears the entire screen and moves the cursor to the origin.
+  void clearScreen() {
+    _console.clearScreen();
+    _ansi.reset(_console.write);
+    moveCursor(0, 0);
+  }
+
+  /// Moves the cursor to the given cell coordinates.
+  ///
+  /// The origin (0, 0) is the top-left corner of the terminal.
+  void moveCursor(final int x, final int y) {
+    _console.cursorPosition = Coordinate(x, y);
+  }
+
+  /// Hides the cursor.
+  void hideCursor() {
+    _console.hideCursor();
+  }
+
+  /// Shows the cursor.
+  void showCursor() {
+    _console.showCursor();
+  }
+
+  /// Writes raw text to the terminal at the current cursor position.
+  ///
+  /// No newline is appended automatically.
+  void write(final String text) {
+    _console.write(text);
+  }
+
+  /// Writes a line of text followed by a newline.
+  void writeln(final String text) {
+    _console.writeLine(text);
+  }
+
+  /// Flushes any buffered output.
+  ///
+  /// This currently delegates to stdout flushing, but is exposed for
+  /// future backends.
+  void flush() {
+    stdout.flush();
+  }
+
+  /// Applies the style and colors for a single cell.
+  ///
+  /// This method is ANSI-aware and minimizes redundant escape sequences.
+  /// The renderer should call this before writing a glyph.
+  /// 
+  /// NOTE: This method assumes the cursor position is already correct.
+  /// The renderer is responsible for cursor movement.
+  void applyCellStyle({
+    required int fg,
+    required int bg,
+    required bool bold,
+    required bool underline,
+    required bool inverse,
+  }) {
+    if(!_entered) return; /// No-op if terminal is not entered.
+    _ansi.apply(
+      write: _console.write,
+      setFg: _console.setForegroundColor,
+      setBg: _console.setBackgroundColor,
+      fg: fg,
+      bg: bg,
+      bold: bold,
+      underline: underline,
+      inverse: inverse,
+    );
+  }
+
+  /// The current terminal width in character cells.
+  int get width => _console.windowWidth;
+
+  /// The current terminal height in character cells.
+  int get height => _console.windowHeight;
+
+  /// Returns the current terminal size.
+  ({int width, int height}) get size => (width: width, height: height);
+
+  /// Reads a single key input from the terminal.
+  ///
+  /// This call blocks until a key event is available.
+  ///
+  /// Higher-level input handling (key mapping, events, etc.) should be
+  /// built on top of this primitive.
+  Key readKey() {
+    return _console.readKey();
+  }
+
+  /// Enables raw input mode.
+  ///
+  /// In raw mode, input is delivered immediately without line buffering.
+  void enableRawMode() {
+    _console.rawMode = true;
+  }
+
+  /// Disables raw input mode.
+  void disableRawMode() {
+    _console.rawMode = false;
+  }
+
+}
