@@ -7,8 +7,8 @@
 /// internal state such as frame buffers and previous render output.
 library;
 
-import 'package:dascade/src/buffer.dart';
-import 'package:dascade/src/cell.dart';
+import 'package:dascade/src/output/buffer.dart';
+import 'package:dascade/src/output/cell.dart';
 
 import 'terminal.dart';
 

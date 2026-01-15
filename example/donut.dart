@@ -101,6 +101,8 @@ final class Donut {
 /// Example of Dascade's excellent handle of primitive rendering and performance capabilities.
 Future<void> main() async {
 
+  /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
+  /// of run()'s callback function.
   await Dascade.run((final Dascade dascade) async {
 
     /// Sure, I'll take a donut.
@@ -115,7 +117,7 @@ Future<void> main() async {
 
     while(running) {
       /// Dascade offers an extremely simple terminal Input API. Here's a couple rules we'll poll for to exit the application.
-      if(dascade.escape || dascade.input.mouseLeft) break;
+      if(dascade.escape) running = false;
 
       /// Every time you'd like to issue draw calls to Dascade, you must begin your frame as such.
       dascade.beginFrame();

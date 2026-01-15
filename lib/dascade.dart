@@ -18,4 +18,4 @@
 library;
 
 export 'src/dascade.dart';
-export 'src/cell.dart';
+export 'src/output/cell.dart';

@@ -7,10 +7,10 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dascade/src/input.dart';
-import 'package:dascade/src/renderer.dart';
+import 'package:dascade/src/input/input.dart';
+import 'package:dascade/src/output/renderer.dart';
 import 'package:dascade/src/sidecar/sidecar.dart';
-import 'package:dascade/src/terminal.dart';
+import 'package:dascade/src/output/terminal.dart';
 
 typedef DascadeApp = Future<void> Function(Dascade d);
 
@@ -91,7 +91,7 @@ final class Dascade {
           if(_sidecarBootstrapping) return;
           _sidecarBootstrapping = true;
           DascadeSidecar.open().then((_) async {
-            // Give the FIFO reader a moment to attach
+            // Give the FIFO reader a moment to attach. TODO: 500 ms is arbitrary. It would be better if we had a Future tell us when pipeline is ready.
             await Future.delayed(const Duration(milliseconds: 500));
             _sidecarBootstrapping = false;
             _sidecarActive = true;
@@ -124,11 +124,53 @@ final class Dascade {
   /// your first print statement invokes, otherwise it will do nothing but ignore statements.
   set forceNoSidecar(final bool ns) => _forceNoSidecar = ns;
 
+  /// Controls whether the right mouse button is treated as a stateful input.
+  ///
+  /// IMPORTANT:
+  /// Many terminal environments (including VS Code’s integrated terminal,
+  /// Windows Terminal, and some Linux terminals) intercept the right mouse
+  /// button to display a context menu. When this happens, the terminal
+  /// often suppresses the corresponding mouse *release* event.
+  ///
+  /// This can cause the right mouse button to appear “stuck” in a pressed
+  /// state if state tracking is enabled.
+  ///
+  /// When this option is:
+  /// - `true`: Right mouse button presses and releases are tracked as state.
+  ///   This may result in a stuck `mouseRight` state in some terminals.
+  /// - `false` (default): Right mouse button is treated as an edge-triggered
+  ///   event only, and Dascade may synthesize a release to ensure consistent
+  ///   behavior across terminal environments.
+  ///
+  /// This setting exists to allow advanced users to opt into raw behavior
+  /// when running in terminals that correctly forward right mouse events.
+  set allowRightMouseCallbackStateTracking(final bool state) => _input.allowRightMouseCallbackStateTracking = state;
+
   // //////////////////////////////////////////////
   // INPUT API
   // //////////////////////////////////////////////
+  
+  /// Returns the current mouse X position (hovering supported)
+  int get mouseX => _input.mouseX;
 
-  DascadeInput get input => _input;
+  /// Returns the current mouse Y position (hovering supported)
+  int get mouseY => _input.mouseY;
+
+  /// Returns the current state of the left mouse button.
+  bool get mouseLeftDown => _input.mouseLeftDown;
+  
+  /// Returns the current state of the middle mouse button.
+  bool get mouseMiddleDown => _input.mouseMiddleDown;
+  
+  /// Returns the current state of the right mouse button.
+  bool get mouseRightDown => _input.mouseRightDown;
+
+  /// Returns the current state of the mouse's scrollwheel value.
+  /// 
+  /// By Dascade convention, a value < 0 means "your finger is coming toward you" and > 0 means "your finger is going away from you" on vertical-only mice.
+  /// 
+  /// That said, you can easily invert by multipling the value by negative 1.
+  int get mouseScrollwheelValue => _input.mouseScrollwheelValue;
 
   // Lowercase key shortcuts.
 
@@ -259,9 +301,9 @@ final class Dascade {
   String? get lastInputChar => _input.last;
 
   // //////////////////////////////////////////////
-  // RENDERING API
+  // OUTPUT API
   // //////////////////////////////////////////////
-
+  
   /// Begins a new rendering frame.
   ///
   /// Must be called before issuing any draw commands.
@@ -305,6 +347,11 @@ final class Dascade {
     _renderer.end();
     _input.flush();
   }
+
+  /// beep :)
+  /// 
+  /// No guarentee this works on every terminal environment, but it certainly works on most native shells.
+  void beep() => _terminal.beep();
 
   // //////////////////////////////////////////////
   // PRIVATE (NOT API!)

@@ -12,7 +12,7 @@ library;
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:dascade/src/ansi.dart';
+import 'package:dascade/src/output/ansi.dart';
 
 /// Low-level terminal interface used by Dascade.
 ///
@@ -106,6 +106,13 @@ final class DascadeTerminal {
     stdout.flush();
   }
 
+  /// Writes a BEL command to stdout. Must be flushed to occur.
+  /// 
+  /// No guarentee this works on every terminal platform, but it certainly does on some.
+  void beep() {
+    stdout.write('\x07');
+  }
+
   /// Applies the style and colors for a single cell.
   ///
   /// This method is ANSI-aware and minimizes redundant escape sequences.
@@ -154,8 +161,7 @@ final class DascadeTerminal {
   
   /// Enables mouse ANSI events.
   void enableMouse() {
-    write('\x1b[?1000h'); // button press
-    write('\x1b[?1002h'); // drag
+    write('\x1b[?1003h'); // any event tracking.
     write('\x1b[?1006h'); // SGR encoding
   }
 
