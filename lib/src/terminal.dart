@@ -29,9 +29,7 @@ final class DascadeTerminal {
   /// Creates a new terminal backend.
   ///
   /// The terminal is not modified until [enter] is called.
-  DascadeTerminal._internal();
-
-  static DascadeTerminal create() => DascadeTerminal._internal();
+  DascadeTerminal();
 
   /// There should only be one instance of dart console; I don't want the rest of the project tightly coupled to it.
   final Console _console = Console();

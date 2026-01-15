@@ -1,6 +1,6 @@
-/// Immediate-mode renderer and terminal interface for Dascade.
+/// Immediate-mode renderer for Dascade.
 ///
-/// Defines the [DascadeInterface] class, which coordinates frame lifecycle,
+/// Defines the [DascadeRenderer] class, which coordinates frame lifecycle,
 /// buffered rendering, differential output to the terminal, and handling of terminal input.
 ///
 /// The renderer exposes a stateless, immediate-mode API while managing
@@ -12,10 +12,9 @@ import 'package:dascade/src/cell.dart';
 
 import 'terminal.dart';
 
-/// Coordinates immediate-mode rendering for terminal output and handles terminal input.
-/// It is the main interface of Dascade.
+/// Coordinates immediate-mode rendering for terminal output.
 ///
-/// [DascadeInterface] is the primary entry point for issuing draw commands in
+/// [DascadeRenderer] is the primary entry point for issuing draw commands in
 /// Dascade. Rendering follows a strict frame-based lifecycle:
 ///
 /// 1. [begin] resets per-frame state
@@ -24,9 +23,9 @@ import 'terminal.dart';
 ///
 /// The renderer itself does not perform terminal I/O directly; instead,
 /// it delegates all side effects to a [DascadeTerminal] backend.
-final class DascadeInterface {
+final class DascadeRenderer {
 
-  /// This should be the only instance of DTerminal in the framework. From now on, the renderer will act as the intermediary between user calls
+  /// This should be a reference to only instance of DascadeTerminal in the framework. From now on, the renderer will act as the intermediary between user calls
   /// and the terminal.
   late final DascadeTerminal _terminal;
 
@@ -42,8 +41,8 @@ final class DascadeInterface {
   bool _frameActive = false;
 
   /// Creates a new renderer instance and assumes control of the users terminal.
-  DascadeInterface() {
-    _terminal = DascadeTerminal.create();
+  DascadeRenderer(final DascadeTerminal terminal) {
+    _terminal = terminal;
     _terminal.enter();
     _syncBufferDimensions();
   }
@@ -58,11 +57,11 @@ final class DascadeInterface {
     _next!.clear();
   }
 
-  /// Public (logical) width = columns
-  int get width => _height;
+  /// The current width of the available rendering plane.
+  int get width => _width;
 
-  /// Public (logical) height = rows
-  int get height => _width; // safe width handling stays here
+  /// The current height of the available rendering plane.
+  int get height => _height;
 
   /// Draws a single cell into the current frame buffer. This is the most primitive way of rendering through Dascade.
   ///
@@ -84,11 +83,8 @@ final class DascadeInterface {
   /// 
   void draw(final int x, final int y, final int cell) {
     if(!_frameActive) return;
-    /// NOTE (iwilkey): Because this is the most primitive API boundary, the definition of the Dascade coordinate system will originate
-    /// from here. I have chosen to swap x and y to align with the way that glfw defines logical-pixel screen space (see above coordinate system). Just keep this
-    /// in mind if you are editing the internals of the engine after this boundary.
-    if(x < 0 || y < 0 || x >= width || y >= height) return;
-    _next!.set(y, x, cell);
+    if(x < 0 || y < 0 || x >= _width || y >= _height) return;
+    _next!.set(x, y, cell);
   }
 
   /// Ends the current frame, computes diffs, and renders changes.
@@ -126,9 +122,12 @@ final class DascadeInterface {
     for(int i = 0; i < nextCells.length; i++) {
       final int next = nextCells[i];
       if(next == currentCells[i]) continue;
-      final int x = i % height;
-      final int y = i ~/ height;
-      _terminal.moveCursor(x, y);
+      final int x = i % _width;
+      final int y = i ~/ _width;
+      /// NOTE (iwilkey): Because this is the most primitive API boundary, the definition of the Dascade coordinate system will originate
+      /// from here. I have chosen to swap x and y to align with the way that glfw defines logical-pixel screen space (see above coordinate system). Just keep this
+      /// in mind if you are editing the internals of the engine after this boundary.
+      _terminal.moveCursor(y, x);
       _terminal.applyCellStyle(
         fg: DascadeCell.foreground(next),
         bg: DascadeCell.background(next),
@@ -156,7 +155,6 @@ final class DascadeInterface {
       _next = DascadeBuffer(_width, _height);
     } else {
       _next!.resize(_width, _height);
-      _next!.clear();
     }
     if(_current == null) {
       _current = DascadeBuffer(_width, _height);

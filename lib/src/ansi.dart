@@ -51,12 +51,9 @@ final class DascadeAnsiState {
         inverse == _inverse) {
       return;
     }
-    // Reset everything
     write('\x1b[0m');
-    // Colors
     _applyColor(fg, isForeground: true, write: write, set: setFg);
     _applyColor(bg, isForeground: false, write: write, set: setBg);
-    // Styles
     if(bold) write('\x1b[1m');
     if(underline) write('\x1b[4m');
     if(inverse) write('\x1b[7m');
@@ -88,8 +85,8 @@ final class DascadeAnsiState {
       set(_ansi16[color]);
     } else {
       write(isForeground
-          ? '\x1b[38;5;${color}m'
-          : '\x1b[48;5;${color}m');
+        ? '\x1b[38;5;${color}m'
+        : '\x1b[48;5;${color}m');
     }
   }
 

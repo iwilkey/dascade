@@ -17,5 +17,6 @@
 /// ```
 library;
 
-export 'src/interface.dart';
+export 'src/dascade.dart';
+export 'src/input.dart';
 export 'src/cell.dart';
