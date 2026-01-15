@@ -94,11 +94,6 @@ final class DascadeRenderer {
     _render();
   }
 
-  /// Disposes of runtime artifacts and gives user back control of their terminal. This should be called in every project at the end of runtime.
-  void dispose() {
-    _terminal.exit();
-  }
-
   /// Reads internal buffers and renders differences through the terminal backend.
   ///
   /// Complexity:

@@ -20,10 +20,6 @@ import 'package:dascade/src/ansi.dart';
 /// for configuring terminal modes, performing output, and reading input.
 ///
 /// Only this class should directly depend on `dart_console`.
-/// 
-/// Original Author: Ian Wilkey
-/// 
-/// Contributing Authors: [name], [name], ...
 final class DascadeTerminal {
 
   /// Creates a new terminal backend.
@@ -49,6 +45,7 @@ final class DascadeTerminal {
   void enter() {
     if(_entered) return;
     _entered = true;
+    createScreenBuffer();
     _console.clearScreen();
     _console.hideCursor();
     _ansi.reset(_console.write);
@@ -145,19 +142,31 @@ final class DascadeTerminal {
   /// Returns the current terminal size.
   ({int width, int height}) get size => (width: width, height: height);
 
-  /// Reads a single key input from the terminal.
-  ///
-  /// This call blocks until a key event is available.
-  ///
-  /// Higher-level input handling (key mapping, events, etc.) should be
-  /// built on top of this primitive.
-  Key readKey() {
-    return _console.readKey();
+  /// Enters the alternate screen buffer.
+  void createScreenBuffer() {
+    write('\x1b[?1049h');
+  }
+
+  /// Exits the alternate screen buffer and restores the main screen.
+  void destoryScreenBuffer() {
+    write('\x1b[?1049l');
+  }
+  
+  /// Enables mouse ANSI events.
+  void enableMouse() {
+    write('\x1b[?1000h'); // button press
+    write('\x1b[?1002h'); // drag
+    write('\x1b[?1006h'); // SGR encoding
+  }
+
+  /// Disables mouse ANSI events.
+  void disableMouse() {
+    write('\x1b[?1000l');
+    write('\x1b[?1002l');
+    write('\x1b[?1006l');
   }
 
   /// Enables raw input mode.
-  ///
-  /// In raw mode, input is delivered immediately without line buffering.
   void enableRawMode() {
     _console.rawMode = true;
   }
@@ -165,6 +174,19 @@ final class DascadeTerminal {
   /// Disables raw input mode.
   void disableRawMode() {
     _console.rawMode = false;
+  }
+
+  /// Disables mouse ANSI events and raw mode. Should be called at [Dascade] dispose() time, nowhere else.
+  void disableInput() {
+    disableMouse();
+    disableRawMode();
+  }
+
+  /// Restores the terminal to it's original state. Should be called at [Dascade] dispose() time, nowhere else.
+  void cleanup() {
+    destoryScreenBuffer();
+    write('\x1b[0m');
+    write('\x1b[?25h');
   }
 
 }

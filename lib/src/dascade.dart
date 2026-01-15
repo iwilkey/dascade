@@ -4,14 +4,35 @@
 /// and terminal peripherals.
 library;
 
-import 'package:dascade/dascade.dart';
+import 'dart:async';
+import 'dart:io';
+
+import 'package:dascade/src/input.dart';
 import 'package:dascade/src/renderer.dart';
+import 'package:dascade/src/sidecar/sidecar.dart';
 import 'package:dascade/src/terminal.dart';
+
+typedef DascadeApp = Future<void> Function(Dascade d);
 
 /// The main interface of Dascade. All framework calls should be made through this object.
 /// 
 /// It's main function is to dispatch high-level API calls to the correct Dascade modules.
 final class Dascade {
+
+  /// There can only be one active instance of Dascade in a project.
+  static bool _activeInstance = false;
+
+  /// Is Sidecar currently ready for writes?
+  static bool _sidecarActive = false;
+
+  /// Is Sidecar bootstrapping to get ready for writes?
+  static bool _sidecarBootstrapping = false;
+
+  /// Whether or not Sidecar is allowed to bind during print() statements.
+  static bool _forceNoSidecar = false;
+
+  /// Holds Sidecar print() statements during bootstrap to make sure they are shown eventually.
+  static final List<String> _sidecarBuffer = [];
 
   /// The origin of the terminal interface for Dascade. This class should be the only class that
   /// instantiates it.
@@ -25,19 +46,89 @@ final class Dascade {
   /// instantiates it.
   late final DascadeInput _input;
 
-  Dascade() {
-    /// Initializes backend modules to ready for terminal I/O.
-    _terminal = DascadeTerminal();
+  /// Constructs the Dascade object at beginning of application runtime.
+  Dascade._internal() {
+    if(_activeInstance) {
+      throw Exception("Only one Dascade instance allowed.");
+    }
+    _terminal = DascadeTerminal()..enableMouse();
     _renderer = DascadeRenderer(_terminal);
     _input = DascadeInput()..start();
+    _activeInstance = true;
+    _installSignalHandlers(this);
   }
 
-  /// Begins a new rendering frame.
-  ///
-  /// Must be called before issuing any draw commands.
-  void beginFrame() {
-    _renderer.begin();
+  // //////////////////////////////////////////////
+  // ENTRY API
+  // //////////////////////////////////////////////
+
+  /// Runs a new instance of Dascade. It defines the main entry point to every Dascade application and is the only
+  /// correct usage of initializing a runtime of Dascade. See examples or API documentation on how to use it correctly.
+  static Future<void> run(final DascadeApp app) async {
+    late Dascade d;
+    await runZonedGuarded(() async {
+      d = Dascade._internal();
+      await app(d);
+    }, (error, stack) {
+      d._dispose();
+      stderr.writeln("\n================================");
+      stderr.writeln("DASCADE APPLICATION FATAL ERROR");
+      stderr.writeln("================================\n");
+      stderr.writeln(error);
+      stderr.writeln(stack);
+      if(_sidecarActive) {
+        /// Sidecar has been created during this runtime, so we need to dispose of it.
+        DascadeSidecar.dispose();
+      }
+    }, zoneSpecification: ZoneSpecification(
+      print: (self, parent, zone, message) {
+        /// Dascade handles print() statements using the "Sidecar" system. If a print() statement has been invoked, it will open
+        /// or use the existing terminal process to show the statement in another terminal.
+        if(_forceNoSidecar) return;
+        if(!_sidecarActive) {
+          // Sidecar not ready yet: buffer to be seen later.
+          _sidecarBuffer.add(message);
+          if(_sidecarBootstrapping) return;
+          _sidecarBootstrapping = true;
+          DascadeSidecar.open().then((_) async {
+            // Give the FIFO reader a moment to attach
+            await Future.delayed(const Duration(milliseconds: 500));
+            _sidecarBootstrapping = false;
+            _sidecarActive = true;
+            // Flush buffered messages sent during Sidecar initialization.
+            for(final String line in _sidecarBuffer) {
+              DascadeSidecar.write(line);
+            }
+            _sidecarBuffer.clear();
+          });
+        } else {
+          // Sidecar ready, so we can write immediately.
+          DascadeSidecar.write(message);
+        }
+      },
+    ))?.whenComplete(() {
+      d._dispose();
+      if(_sidecarActive) {
+        /// Sidecar has been created during this runtime, so we need to dispose of it.
+        DascadeSidecar.dispose();
+      }
+    });
   }
+
+  // //////////////////////////////////////////////
+  // CONFIGURATION
+  // ///////////////////////////////////////////////
+
+  /// Whether or not Sidecar is allowed to bind during print() statements. If you decide to opt-out of Sidecar, your
+  /// print statements will essentially be completely ignored. Note that you need to ensure you set this state before
+  /// your first print statement invokes, otherwise it will do nothing but ignore statements.
+  set forceNoSidecar(final bool ns) => _forceNoSidecar = ns;
+
+  // //////////////////////////////////////////////
+  // INPUT API
+  // //////////////////////////////////////////////
+
+  DascadeInput get input => _input;
 
   // Lowercase key shortcuts.
 
@@ -166,6 +257,17 @@ final class Dascade {
   /// Returns the last typed character's char value. This WILL NOT return modifier key events, or other special input. If you want to know
   /// about those events, you should poll for them using the shortcut methods defined in [DascadeInput].
   String? get lastInputChar => _input.last;
+
+  // //////////////////////////////////////////////
+  // RENDERING API
+  // //////////////////////////////////////////////
+
+  /// Begins a new rendering frame.
+  ///
+  /// Must be called before issuing any draw commands.
+  void beginFrame() {
+    _renderer.begin();
+  }
   
   /// The current width of the available rendering plane.
   int get width => _renderer.width;
@@ -204,10 +306,29 @@ final class Dascade {
     _input.flush();
   }
 
+  // //////////////////////////////////////////////
+  // PRIVATE (NOT API!)
+  // ///////////////////////////////////////////////
+
+  /// Watches POSIX signals and safely shuts Dascade down to restore funcationality to the user's terminal.
+  void _installSignalHandlers(final Dascade dascade) {
+    ProcessSignal.sigint.watch().listen((_) {
+      dascade._dispose();
+    });
+    ProcessSignal.sigterm.watch().listen((_) {
+      dascade._dispose();
+    });
+  }
+
   /// Disposes of runtime artifacts and gives user back control of their terminal. This should be called in every project at the end of runtime.
-  void dispose() {
+  void _dispose() {
+    _terminal.disableInput();
     _input.stop();
-    _renderer.dispose();
+    _terminal.cleanup();
+    stdout.flush().then((_) {
+      _activeInstance = false;
+      exit(0);
+    });
   }
 
 }

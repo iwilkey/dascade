@@ -10,19 +10,126 @@
 /// Only keyboard input is supported at this time.
 library;
 
+import 'dart:io';
+
 import 'package:dart_console/dart_console.dart';
 
 import 'dart:isolate';
 
+/// Mouse input event reported by terminal.
+final class DMouseEvent {
+  final int x; // 0-based
+  final int y;
+  final bool left;
+  final bool middle;
+  final bool right;
+  final int scroll; // +1 up, -1 down, 0 none
+  const DMouseEvent({
+    required this.x,
+    required this.y,
+    this.left = false,
+    this.middle = false,
+    this.right = false,
+    this.scroll = 0,
+  });
+}
+
 /// Routine of the Input module's isolate; Poll input off of the main rendering thread.
+/// Input isolate routine.
+/// Owns stdin and emits Key or DMouseEvent.
 void listener(final SendPort sendPort) {
-  /// As far as I know, it's okay to intantiate a new Console since they internal point to the same 
-  /// terminal session. This may be proven wrong/problematic later.
-  final Console console = Console();
-  console.rawMode = true;
+  stdin.echoMode = false;
+  stdin.lineMode = false;
   while(true) {
-    final Key key = console.readKey();
-    sendPort.send(key);
+    final int codeUnit = stdin.readByteSync();
+    if(codeUnit <= 0) continue;
+    // Ctrl+A .. Ctrl+Z
+    if(codeUnit >= 0x01 && codeUnit <= 0x1a) {
+      sendPort.send(
+        Key.control(ControlCharacter.values[codeUnit]),
+      );
+      continue;
+    }
+    // Escape sequences
+    if(codeUnit == 0x1b) {
+      final int next = stdin.readByteSync();
+      if(next == -1) {
+        sendPort.send(Key.control(ControlCharacter.escape));
+        continue;
+      }
+      // Mouse: ESC [ <
+      if (next == 0x5b) {
+        final int third = stdin.readByteSync();
+        if (third == 0x3c) {
+          // SGR mouse sequence
+          final buffer = <int>[0x1b, 0x5b, 0x3c];
+          while (true) {
+            final int b = stdin.readByteSync();
+            buffer.add(b);
+            if(b == 0x4d || b == 0x6d) break; // M or m
+          }
+          final String seq = String.fromCharCodes(buffer);
+          final match = RegExp(r'\x1b\[<(\d+);(\d+);(\d+)([Mm])').firstMatch(seq);
+          if(match != null) {
+            final int code = int.parse(match.group(1)!);
+            final int x = int.parse(match.group(2)!) - 1;
+            final int y = int.parse(match.group(3)!) - 1;
+            final bool release = match.group(4) == 'm';
+            final int button = code & 0x3;
+            final bool scrollUp = code == 64;
+            final bool scrollDown = code == 65;
+            sendPort.send(
+              DMouseEvent(
+                x: x,
+                y: y,
+                left: !release && button == 0,
+                middle: !release && button == 1,
+                right: !release && button == 2,
+                scroll: scrollUp
+                    ? 1
+                    : scrollDown
+                        ? -1
+                        : 0,
+              ),
+            );
+            continue;
+          }
+        }
+        // Not mouse → fall back to key parsing
+        final int c2 = stdin.readByteSync();
+        final key = Key.control(ControlCharacter.escape);
+        switch (c2) {
+          case 65:
+            key.controlChar = ControlCharacter.arrowUp;
+            break;
+          case 66:
+            key.controlChar = ControlCharacter.arrowDown;
+            break;
+          case 67:
+            key.controlChar = ControlCharacter.arrowRight;
+            break;
+          case 68:
+            key.controlChar = ControlCharacter.arrowLeft;
+            break;
+          default:
+            key.controlChar = ControlCharacter.unknown;
+        }
+        sendPort.send(key);
+        continue;
+      }
+      // Other escape cases
+      sendPort.send(Key.control(ControlCharacter.escape));
+      continue;
+    }
+    // Backspace
+    if(codeUnit == 0x7f) {
+      sendPort.send(Key.control(ControlCharacter.backspace));
+      continue;
+    }
+    // Printable
+    sendPort.send(
+      Key.printable(String.fromCharCode(codeUnit)),
+    );
   }
 }
 
@@ -37,6 +144,13 @@ final class DascadeInput {
   /// Modifer & special key states.
   final Map<ControlCharacter, bool> _modifiers = {};
 
+  int _mouseX = 0;
+  int _mouseY = 0;
+  bool _mouseLeft = false;
+  bool _mouseMiddle = false;
+  bool _mouseRight = false;
+  int _scroll = 0;
+
   /// The return port of key events, as polled from the input manager's isolate.
   late final ReceivePort _port;
 
@@ -46,17 +160,29 @@ final class DascadeInput {
   /// The last key.
   Key? _last;
 
+  /// Whether or not the isolate is currently running.
+  bool _isolateRunning = false;
+
   /// Begins listening for input in isolate. Should only be called by the [Dascade] instance.
   void start() async {
     _port = ReceivePort();
     _isolate = await Isolate.spawn(listener, _port.sendPort);
+    _isolateRunning = true;
     _port.listen((final dynamic message) {
-      if(message is! Key) return;
-      _last = message;
-      if(message.isControl) {
-        _modifiers[message.controlChar] = true;
-      } else if (message.char.isNotEmpty) {
-        _keys[message.char] = true;
+      if(message is Key) {
+        _last = message;
+        if (message.isControl) {
+          _modifiers[message.controlChar] = true;
+        } else if (message.char.isNotEmpty) {
+          _keys[message.char] = true;
+        }
+      } else if (message is DMouseEvent) {
+        _mouseX = message.x;
+        _mouseY = message.y;
+        _mouseLeft |= message.left;
+        _mouseMiddle |= message.middle;
+        _mouseRight |= message.right;
+        _scroll += message.scroll;
       }
     });
   }
@@ -68,17 +194,31 @@ final class DascadeInput {
   /// about those events, you should poll for them using the shortcut methods defined in [DascadeInput].
   String? get last => _last?.char;
 
+  int get mouseX => _mouseX;
+  int get mouseY => _mouseY;
+  bool get mouseLeft => _mouseLeft;
+  bool get mouseMiddle => _mouseMiddle;
+  bool get mouseRight => _mouseRight;
+  int get scroll => _scroll;
+
   /// Resets the state of input for next frame. Should only be called internally at runtime dispose time by the [Dascade] object.
   void flush() {
     _keys.clear();
     _modifiers.clear();
+    _mouseLeft = false;
+    _mouseMiddle = false;
+    _mouseRight = false;
+    _scroll = 0;
     _last = null;
   }
 
   /// Kills the input listener isolate. Should only be called internally at runtime dispose time by the [Dascade] object.
   void stop() {
     _port.close();
-    _isolate?.kill(priority: Isolate.immediate);
+    if(_isolateRunning) {
+      _isolate?.kill(priority: Isolate.immediate);
+    }
+    _isolateRunning = false;
   }
 
   // Lowercase key shortcuts.

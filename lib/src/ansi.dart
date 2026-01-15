@@ -5,6 +5,8 @@ import 'package:dart_console/dart_console.dart';
 
 /// Responsible for emitting correct ANSI escape sequences for colors
 /// and text styles while minimizing redundant output.
+/// 
+/// Essentially minimizes the ANSI state changes that can occur during rendering.
 final class DascadeAnsiState {
 
   /// Table for well-known ANSI 16.
@@ -53,11 +55,12 @@ final class DascadeAnsiState {
     required bool underline,
     required bool inverse,
   }) {
+    /// If the style of this cell is the same as before, we can ignore this function call.
     if(fg == _fg &&
-        bg == _bg &&
-        bold == _bold &&
-        underline == _underline &&
-        inverse == _inverse) {
+       bg == _bg &&
+       bold == _bold &&
+       underline == _underline &&
+       inverse == _inverse) {
       return;
     }
     write('\x1b[0m');
@@ -90,7 +93,7 @@ final class DascadeAnsiState {
     required void Function(String) write,
     required void Function(ConsoleColor) set,
   }) {
-    if (color < 16) {
+    if(color < 16) {
       set(_ansi16[color]);
     } else {
       write(isForeground
