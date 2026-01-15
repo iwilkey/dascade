@@ -14,8 +14,13 @@ library;
 /// `index = y * width + x`
 final class DascadeBuffer {
 
+  /// Width of the buffer.
   int _width;
+
+  /// Height of the buffer.
   int _height;
+
+  /// Data.
   List<int> _cells;
 
   /// Creates a new buffer with the given dimensions.

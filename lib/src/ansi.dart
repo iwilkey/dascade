@@ -27,10 +27,19 @@ final class DascadeAnsiState {
     ConsoleColor.brightWhite,
   ];
 
+  /// Last forground ANSI value.
   int _fg = -1;
+
+  /// Last background ANSI value.
   int _bg = -1;
+
+  /// Last bold state.
   bool _bold = false;
+
+  /// Last underline state.
   bool _underline = false;
+
+  /// Last inverse state.
   bool _inverse = false;
 
   /// Applies a new style state, emitting ANSI sequences as needed.

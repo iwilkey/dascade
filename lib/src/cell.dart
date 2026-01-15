@@ -9,6 +9,8 @@ library;
 /// 
 /// Contributing Authors: [name], [name], ...
 final class DascadeCell {
+
+  static const int _emptyCell = 0;
   
   static const int _glyphBits = 21;
   static const int _colorBits = 8;
@@ -64,7 +66,7 @@ final class DascadeCell {
   }
 
   /// Returns if the given cell is empty.
-  static bool empty(final int cell) => cell == 0;
+  static bool empty(final int cell) => cell == _emptyCell;
 
   /// Decodes the target glyph code packed in given cell value.
   static int glyph(final int cell) => (cell >> _glyphShift) & _glyphMask;
