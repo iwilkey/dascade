@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:dascade/dascade.dart';
 
 /// Example of Dascade's handle of mouse input polling.
+/// Author: Ian Wilkey
 Future<void> main() async {
 
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside

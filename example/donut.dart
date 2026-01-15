@@ -99,6 +99,7 @@ final class Donut {
 }
 
 /// Example of Dascade's excellent handle of primitive rendering and performance capabilities.
+/// Author: Ian Wilkey
 Future<void> main() async {
 
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
