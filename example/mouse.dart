@@ -11,7 +11,7 @@ Future<void> main() async {
 
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
   /// of run()'s callback function.
-  await Dascade.run((final Dascade dascade) async {
+  await Dascade.run((final DascadeFramework dascade) async {
     
     /// I'm testing with VS code's integrated terminal, so I need this. You might not, especially if this is running in a native
     /// terminal instance.

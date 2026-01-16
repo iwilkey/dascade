@@ -5,21 +5,21 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:dart_console/dart_console.dart';
-import 'package:dascade/src/input/mouse_event.dart';
+import 'package:dascade/src/input/native/mouse_event.dart';
 
 /// Input isolate routine.
 /// 
 /// User's of this framework will never have to deal with this object.
-final class DascadeInputPoller {
+final class DascadeNativeInputPoller {
 
   /// This is a static class; it should never be instantiated.
-  DascadeInputPoller._();
+  DascadeNativeInputPoller._();
 
   /// Input isolate routine.
   /// 
   /// Polls input off of the main rendering thread.
   /// 
-  /// Owns stdin and emits [Key] or [DascadeMouseEvent].
+  /// Owns stdin and emits [Key] or [DascadeNativeMouseEvent].
   static void routine(final SendPort sendPort) {
     stdin.echoMode = false;
     stdin.lineMode = false;
@@ -89,7 +89,7 @@ final class DascadeInputPoller {
                 }
               }
               sendPort.send(
-                DascadeMouseEvent(
+                DascadeNativeMouseEvent(
                   x: x,
                   y: y,
                   leftDown: leftDown,

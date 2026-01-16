@@ -18,4 +18,5 @@
 library;
 
 export 'src/dascade.dart';
+export 'src/runtime/dascade_framework.dart';
 export 'src/output/cell.dart';

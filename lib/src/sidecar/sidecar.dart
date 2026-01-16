@@ -49,7 +49,7 @@ abstract final class DascadeSidecar {
   /// Writes a message to the sidecar terminal, if one is active.
   ///
   /// If the sidecar has not been opened, this call is a no-op.
-  static void write(String message) {
+  static void write(final String message) {
     _instance?.write(message);
   }
 

@@ -11,7 +11,7 @@ library;
 abstract interface class DascadeSidecarImpl {
 
   /// Writes a message to the sidecar output.
-  void write(String message);
+  void write(final String message);
 
   /// Disposes of the sidecar and releases all associated resources.
   void dispose();

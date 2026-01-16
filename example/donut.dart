@@ -25,7 +25,7 @@ final class Donut {
   Donut();
 
   /// Draws one frame of the Donut, based on current a, b rotation values.
-  void draw(final Dascade dascade) {
+  void draw(final DascadeFramework dascade) {
 
     /// Capturing the current dimensions of your rendering plane right before draw calls is a great way to enture that
     /// your pictures remain responsive during terminal resize events.
@@ -104,7 +104,7 @@ Future<void> main() async {
 
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
   /// of run()'s callback function.
-  await Dascade.run((final Dascade dascade) async {
+  await Dascade.run((final DascadeFramework dascade) async {
 
     /// Sure, I'll take a donut.
     final Donut donut = Donut();
@@ -135,10 +135,12 @@ Future<void> main() async {
       /// It's good practice to throttle your loop to ensure that your main thread isn't starved of resources.
       await Future.delayed(const Duration(milliseconds: 16));
 
-      /// Dascade CAN handle print() statements! It just does so with the "Sidecar" system. After the first print() statement is
+      /// Dascade Native CAN handle print() statements! It just does so with the "Sidecar" system. After the first print() statement is
       /// invoked, a new Sidecar instance (your platform's native terminal) will popup and show you all statements thereafter in
       /// real-time. Note you may opt-out of Sidecar by using dascade.forceNoSidecar = true, but make sure to set that before your first print
       /// statement is invoked.
+      /// 
+      /// On web-based runtimes, you can just use the developer tools to see your print statements.
       frames++;
       if(frames % 10 == 0) {
         print("Frame: $frames");

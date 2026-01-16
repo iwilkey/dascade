@@ -29,7 +29,7 @@ Future<void> main() async {
 
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
   /// of run()'s callback function.
-  await Dascade.run((final Dascade d) async {
+  await Dascade.run((final DascadeFramework d) async {
 
     /// Dascade is an immediate-mode framework; this means it draws information as your program runs. Because of this,
     /// it's best practice to define your main thread loop like the one below.

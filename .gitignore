@@ -1,3 +1,7 @@
 .dart_tool/
 pubspec.lock
 .vscode
+web/main.js
+web/main.js.deps
+web/main.js.map
+.DS_Store

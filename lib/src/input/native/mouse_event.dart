@@ -5,7 +5,7 @@ library;
 
 /// Mouse input event reported by terminal. This is strictly for message-passing. User's will never have to handle these 
 /// objects.
-final class DascadeMouseEvent {
+final class DascadeNativeMouseEvent {
   final int x;
   final int y;
   final bool leftDown;
@@ -15,7 +15,7 @@ final class DascadeMouseEvent {
   final bool rightDown;
   final bool rightUp;
   final int scroll;
-  const DascadeMouseEvent({
+  const DascadeNativeMouseEvent({
     required this.x,
     required this.y,
     this.leftDown = false,

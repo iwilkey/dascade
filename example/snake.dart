@@ -20,7 +20,7 @@ Future<void> main() async {
 
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
   /// of run()'s callback function.
-  await Dascade.run((final Dascade dascade) async {
+  await Dascade.run((final DascadeFramework dascade) async {
 
     /// Snake body, stored head-first.
     final List<Point<int>> snake = [
