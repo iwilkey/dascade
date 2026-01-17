@@ -391,9 +391,12 @@ final class DascadeNative implements DascadeFramework {
     ProcessSignal.sigint.watch().listen((_) {
       dascade._dispose();
     });
-    ProcessSignal.sigterm.watch().listen((_) {
-      dascade._dispose();
-    });
+    /// Windows patch: most windows-based terminals don't support sigterm listeners.
+    if(!Platform.isWindows) {
+      ProcessSignal.sigterm.watch().listen((_) {
+        dascade._dispose();
+      });
+    }
   }
 
   /// Disposes of runtime artifacts and gives user back control of their terminal. This should be called in every project at the end of runtime.

@@ -6,6 +6,7 @@ import 'dart:isolate';
 
 import 'package:dart_console/dart_console.dart';
 import 'package:dascade/src/input/native/mouse_event.dart';
+import 'package:dascade/src/input/native/windows_vt.dart';
 
 /// Input isolate routine.
 /// 
@@ -21,6 +22,11 @@ final class DascadeNativeInputPoller {
   /// 
   /// Owns stdin and emits [Key] or [DascadeNativeMouseEvent].
   static void routine(final SendPort sendPort) {
+    /// Patch for windows: Windows terminals don't read ANSI input by default, so we need to do the following...
+    if(Platform.isWindows) {
+      DascadeWindowsVT.enableInput();
+      DascadeWindowsVT.enableOutput();
+    }
     stdin.echoMode = false;
     stdin.lineMode = false;
     while(true) {

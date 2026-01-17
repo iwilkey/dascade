@@ -186,8 +186,7 @@ final class DascadeNativeTerminal implements DascadeTerminalInterface {
   /// Disables mouse ANSI events.
   @override
   void disableMouse() {
-    write('\x1b[?1000l');
-    write('\x1b[?1002l');
+    write('\x1b[?1003l');
     write('\x1b[?1006l');
   }
 

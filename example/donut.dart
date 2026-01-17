@@ -105,6 +105,8 @@ Future<void> main() async {
   /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
   /// of run()'s callback function.
   await Dascade.run((final DascadeFramework dascade) async {
+    
+    dascade.forceNoSidecar = true;
 
     /// Sure, I'll take a donut.
     final Donut donut = Donut();
@@ -143,7 +145,7 @@ Future<void> main() async {
       /// On web-based runtimes, you can just use the developer tools to see your print statements.
       frames++;
       if(frames % 10 == 0) {
-        print("Frame: $frames");
+        //print("Frame: $frames");
       }
     }
   });
