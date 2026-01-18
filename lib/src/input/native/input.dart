@@ -150,7 +150,7 @@ final class DascadeNativeInput implements DascadeInputInterface {
   int get mouseScrollwheelValue => -_scroll;
 
   // Lowercase key shortcuts.
-
+  
   @override bool get a => _keys['a'] ?? false;
   @override bool get b => _keys['b'] ?? false;
   @override bool get c => _keys['c'] ?? false;
@@ -249,6 +249,7 @@ final class DascadeNativeInput implements DascadeInputInterface {
   @override bool get escape => _modifiers[ControlCharacter.escape] ?? false;
   @override bool get delete => _modifiers[ControlCharacter.delete] ?? false;
   @override bool get backspace => _modifiers[ControlCharacter.backspace] ?? false;
+  @override bool get space => _keys[' '] ?? false;
 
   // Function key shortcuts.
 

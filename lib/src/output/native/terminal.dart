@@ -12,6 +12,7 @@ library;
 import 'dart:io';
 
 import 'package:dart_console/dart_console.dart';
+import 'package:dascade/src/input/native/win_vt.dart';
 import 'package:dascade/src/output/native/ansi.dart';
 import 'package:dascade/src/output/terminal_interface.dart';
 
@@ -212,6 +213,9 @@ final class DascadeNativeTerminal implements DascadeTerminalInterface {
   /// Restores the terminal to it's original state. Should be called at [Dascade] dispose() time, nowhere else.
   @override
   void cleanup() {
+    if(Platform.isWindows) {
+      DascadeWindowsVT.restoreConsoleMode();
+    }
     destoryScreenBuffer();
     write('\x1b[0m');
     write('\x1b[?25h');

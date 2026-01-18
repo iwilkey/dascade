@@ -161,6 +161,7 @@ abstract interface class DascadeInputInterface {
   bool get escape;
   bool get delete;
   bool get backspace;
+  bool get space;
 
   // Function key shortcuts.
 

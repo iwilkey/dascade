@@ -293,7 +293,8 @@ final class DascadeNative implements DascadeFramework {
   @override bool get escape => _input.escape;
   @override bool get delete => _input.delete;
   @override bool get backspace => _input.backspace;
-
+  @override bool get space => _input.space;
+  
   // Function key shortcuts.
 
   @override bool get f1 => _input.f1;

@@ -26,7 +26,7 @@ Future<void> main() async {
 
     while(running) {
       /// Dascade offers an extremely simple terminal Input API.
-      if(dascade.escape) running = false; /// This statement returns true while the "Escape" key is pressed down.
+      if(dascade.space) running = false; /// This statement returns true while the "Escape" key is pressed down.
       /// Every time you'd like to issue draw calls to Dascade, you must begin your frame as such.
       dascade.beginFrame();
       /// Scroll wheel dynamically increases / decreases subdivision count.
