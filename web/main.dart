@@ -1,4 +1,4 @@
-import '../example/snake.dart' as app;
+import '../example/ui.dart' as app;
 
 void main() {
   app.main();

@@ -12,6 +12,7 @@ import 'package:dascade/src/output/rendering_interface.dart';
 import 'package:dascade/src/output/terminal_interface.dart';
 import 'package:dascade/src/platform/platform.dart';
 import 'package:dascade/src/platform/select_platform.dart';
+import 'package:dascade/src/ui/ui.dart';
 
 Future<void> execute(Future<void> Function(DascadeFramework) app) => (DascadeWeb.execute as dynamic)(app);
 
@@ -35,6 +36,9 @@ final class DascadeWeb implements DascadeFramework {
   /// instantiates it.
   static late final DascadeInputInterface _input;
 
+  /// Reference to Dascade UI module.
+  static late final DascadeUI _ui;
+
   /// Constructs the Dascade object at beginning of application runtime.
   DascadeWeb._internal() {
     if(_activeInstance) {
@@ -44,6 +48,7 @@ final class DascadeWeb implements DascadeFramework {
     _terminal = platform.createTerminal();
     _renderer = platform.createRenderer(_terminal);
     _input = platform.createInput();
+    _ui = DascadeUI(this);
     _activeInstance = true;
   }
 
@@ -116,6 +121,13 @@ final class DascadeWeb implements DascadeFramework {
   /// when running in terminals that correctly forward right mouse events.
   @override
   set allowRightMouseCallbackStateTracking(final bool state) => _input.allowRightMouseCallbackStateTracking = state;
+
+  // //////////////////////////////////////////////
+  // DASCADE UI
+  // ///////////////////////////////////////////////
+
+  @override
+  DascadeUI get ui => _ui;
 
   // //////////////////////////////////////////////
   // INPUT API
@@ -290,6 +302,7 @@ final class DascadeWeb implements DascadeFramework {
   @override
   void beginFrame() {
     _renderer.begin();
+    _ui.begin();
   }
   
   /// The current width of the available rendering plane.
@@ -330,6 +343,7 @@ final class DascadeWeb implements DascadeFramework {
   @override
   void endFrame() {
     _renderer.end();
+    _ui.end();
     _input.flush();
   }
 

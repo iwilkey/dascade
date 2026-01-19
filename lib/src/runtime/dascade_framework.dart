@@ -6,6 +6,8 @@ library;
 
 import 'dart:async';
 
+import 'package:dascade/src/ui/ui.dart';
+
 typedef DascadeApp = Future<void> Function(DascadeFramework d);
 
 /// The main interface of Dascade. All framework calls should be made through this object.
@@ -43,6 +45,12 @@ abstract class DascadeFramework {
   /// This setting exists to allow advanced users to opt into raw behavior
   /// when running in terminals that correctly forward right mouse events.
   set allowRightMouseCallbackStateTracking(final bool state);
+
+  // //////////////////////////////////////////////
+  // DASCADE UI
+  // //////////////////////////////////////////////
+
+  DascadeUI get ui;
 
   // //////////////////////////////////////////////
   // INPUT API
