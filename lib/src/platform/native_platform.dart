@@ -5,6 +5,8 @@
 /// for non web targets using conditional imports.
 library;
 
+import 'dart:io';
+
 import 'package:dascade/src/input/input_interface.dart';
 import 'package:dascade/src/input/native/input.dart';
 
@@ -26,7 +28,12 @@ final class DascadePlatformImpl implements DascadePlatform {
   /// terminal applications.
   @override
   DascadeTerminalInterface createTerminal() {
-    return DascadeNativeTerminal()..enableMouse();
+    if(Platform.isWindows) {
+      return DascadeNativeTerminal()..enableMouse();
+    } else {
+      /// POSIX-style terminal; raw mode! SIGINT will not be supported, though.
+      return DascadeNativeTerminal()..enableMouse()..enableRawMode();
+    }
   }
 
   /// Creates the native renderer.

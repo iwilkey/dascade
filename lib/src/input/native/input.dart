@@ -97,7 +97,7 @@ final class DascadeNativeInput implements DascadeInputInterface {
     if(!_allowRightMouseCallbackStateTracking) {
       _mouseRightDown = false;
     }
-    /// We must reset scroll as it is impossible to make it stateful. TODO: Might make this user-configurable later.
+    /// We must reset scroll as it is impossible to make it stateful.
     _scroll = 0;
     _last = null;
   }
@@ -246,13 +246,14 @@ final class DascadeNativeInput implements DascadeInputInterface {
   @override bool get pageDown => _modifiers[ControlCharacter.pageDown] ?? false;
   @override bool get home => _modifiers[ControlCharacter.home] ?? false;
   @override bool get end => _modifiers[ControlCharacter.end] ?? false;
-  @override bool get escape => _modifiers[ControlCharacter.escape] ?? false;
+  @override bool get escape => _modifiers[ControlCharacter.escape] ?? false; // NO
   @override bool get delete => _modifiers[ControlCharacter.delete] ?? false;
   @override bool get backspace => _modifiers[ControlCharacter.backspace] ?? false;
   @override bool get space => _keys[' '] ?? false;
 
   // Function key shortcuts.
 
+  /// TODO: MAC: NOT SUPPORTED RIGHT NOW since function keys are usually mapped to OS-specific processes like increasing brightness, volume, etc.
   @override bool get f1 => _modifiers[ControlCharacter.F1] ?? false;
   @override bool get f2 => _modifiers[ControlCharacter.F2] ?? false;
   @override bool get f3 => _modifiers[ControlCharacter.F3] ?? false;

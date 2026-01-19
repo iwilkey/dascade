@@ -387,13 +387,16 @@ final class DascadeNative implements DascadeFramework {
   // PRIVATE (NOT API!)
   // ///////////////////////////////////////////////
 
-  /// Watches POSIX signals and safely shuts Dascade down to restore funcationality to the user's terminal.
+  /// Watches POSIX-style signals and safely shuts Dascade down to restore funcationality to the user's terminal.
   void _installSignalHandlers(final DascadeNative dascade) {
-    ProcessSignal.sigint.watch().listen((_) {
-      dascade._dispose();
-    });
-    /// Windows patch: most windows-based terminals don't support sigterm listeners.
-    if(!Platform.isWindows) {
+    if(Platform.isWindows) {
+      /// POSIX-style runtimes operate in raw mode; SIGINT is not supported in that case. You must
+      /// listen for Ctrl+C in application code on those platforms.
+      ProcessSignal.sigint.watch().listen((_) {
+        dascade._dispose();
+      });
+    } else {
+      /// Windows PATCH: most windows-based terminals don't support sigterm listeners.
       ProcessSignal.sigterm.watch().listen((_) {
         dascade._dispose();
       });

@@ -22,7 +22,7 @@ final class DascadeNativeInputPoller {
   /// Polls input off of the main rendering thread.
   /// 
   /// Owns stdin and emits [Key] or [DascadeNativeMouseEvent] through the [DascadeNativeInputParseEmitter].
-  static void routine(final SendPort sendPort) {
+  static void routine(final SendPort sendPort) async {
     // Patch for windows: Windows terminals don't read ANSI input by default
     if(Platform.isWindows) {
       DascadeWindowsVT.enable();
@@ -33,6 +33,7 @@ final class DascadeNativeInputPoller {
       final int codeUnit = stdin.readByteSync();
       if(codeUnit < 0) continue;
       DascadeNativeInputParseEmitter.emit(codeUnit, sendPort);
+      await Future<void>.delayed(Duration.zero);
     }
   }
 
