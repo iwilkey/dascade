@@ -319,6 +319,7 @@ final class DascadeWebInput implements DascadeInputInterface {
   @override bool get escape => _keys['escape'] ?? false;
   @override bool get delete => _keys['delete'] ?? false;
   @override bool get backspace => _keys['backspace'] ?? false;
+  @override bool get enter => _keys['enter'] ?? false;
   @override bool get space => _keys['space'] ?? false;
 
   // Function key shortcuts.

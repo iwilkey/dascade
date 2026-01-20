@@ -31,6 +31,12 @@ final class DascadeNativeInputParseEmitter {
   /// ASCII DEL (0x7F).
   static const int ASCII_DEL = 0x7f;
 
+  /// ASCII LF / newline (0x0A).
+  static const int ASCII_LF = 0x0a;
+
+  /// ASCII CR / carriage return (0x0D).
+  static const int ASCII_CR = 0x0d;
+
   /// Ctrl+A lower bound (0x01).
   static const int ASCII_CTRL_A_MIN = 0x01;
 
@@ -96,6 +102,11 @@ final class DascadeNativeInputParseEmitter {
     // These map directly to ControlCharacter.values[codeUnit]
     if(codeUnit >= ASCII_CTRL_A_MIN && codeUnit <= ASCII_CTRL_Z_MAX) {
       sendPort.send(Key.control(ControlCharacter.values[codeUnit]));
+      return;
+    }
+    // Enter / Return (0x0a or 0x0d)
+    if(codeUnit == ASCII_LF || codeUnit == ASCII_CR) {
+      sendPort.send(Key.control(ControlCharacter.enter));
       return;
     }
     // Escape sequences (0x1b)

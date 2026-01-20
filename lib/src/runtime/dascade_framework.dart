@@ -178,6 +178,7 @@ abstract class DascadeFramework {
   bool get escape;
   bool get delete;
   bool get backspace;
+  bool get enter;
   bool get space;
 
   // Function key shortcuts.
