@@ -19,9 +19,9 @@ abstract class DUElement {
   void layout(final DURect rect);
 
   /// Handles user interaction (mouse, keyboard, focus) for this frame.
-  void interact(final DUIRuntime r);
+  void interact(final DURuntime r);
 
   /// Renders the element using the given [painter] and [runtime].
-  void render(final DUIRenderer p, final DUIRuntime r);
+  void render(final DURenderer p, final DURuntime r);
 
 }

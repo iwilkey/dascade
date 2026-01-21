@@ -78,6 +78,11 @@ final class DascadeBuffer {
     _cells.fillRange(0, _cells.length, 0);
   }
 
+  /// Fills the buffer with a non-zero cell value.
+  void fill() {
+    _cells.fillRange(0, _cells.length, 1);
+  }
+
   /// Resizes the buffer to the given dimensions.
   ///
   /// Existing cell data is preserved where possible. Newly allocated

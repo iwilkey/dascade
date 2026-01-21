@@ -59,12 +59,12 @@ abstract class DULayoutGroup extends DUElement {
   }
 
   @override
-  void interact(final DUIRuntime r) {
+  void interact(final DURuntime r) {
     // Layout containers do not handle interaction directly.
   }
 
   @override
-  void render(final DUIRenderer p, final DUIRuntime r) {
+  void render(final DURenderer p, final DURuntime r) {
     final DURect content = pad > 0 ? _rect.inset(pad) : _rect;
     final List<DURect> slots = _split(content);
     for(int i = 0; i < children.length; i++) {

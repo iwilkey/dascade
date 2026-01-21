@@ -14,8 +14,8 @@ import 'package:dascade/src/ui/runtime.dart';
 /// Root entry point for building and rendering immediate-mode UI in Dascade.
 ///
 /// This class coordinates layout, interaction, and rendering for all elements
-/// each frame. It owns both the [DUIRuntime] (input & focus state)
-/// and the [DUIRenderer] (draw API).
+/// each frame. It owns both the [DURuntime] (input & focus state)
+/// and the [DURenderer] (draw API).
 ///
 /// A single [DascadeUI] instance should be created per app, and reused each frame.
 final class DascadeUI {
@@ -24,14 +24,14 @@ final class DascadeUI {
   final DascadeFramework d;
 
   /// Handles per-frame input state (mouse, focus, text input).
-  final DUIRuntime _r;
+  final DURuntime _r;
 
   /// Handles rendering primitives and clipping.
-  final DUIRenderer _p;
+  final DURenderer _p;
 
   DascadeUI(this.d)
-    : _r = DUIRuntime(d),
-      _p = DUIRenderer(d);
+    : _r = DURuntime(d),
+      _p = DURenderer(d);
 
   /// Begins a new UI frame.
   ///

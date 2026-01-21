@@ -1,4 +1,8 @@
 /// Manages per-frame input state for the Dascade UI system.
+///
+/// Handles mouse edges, keyboard input edges, focus tracking, and typed chars.
+/// This runtime is passed to all elements each frame to provide consistent
+/// per-frame input semantics (pressed/released edges where needed).
 library;
 
 import 'package:dascade/dascade.dart';
@@ -6,30 +10,52 @@ import 'package:dascade/src/ui/elements/element.dart';
 import 'package:dascade/src/ui/geometry/rect.dart';
 
 /// Manages per-frame input state for the Dascade UI system.
-///
-/// Handles mouse edges, keyboard input, focus tracking, and typed characters.
-/// This class is passed to all elements during interaction and rendering to
-/// provide a consistent view of user input for the current frame.
-final class DUIRuntime {
+final class DURuntime {
 
+  /// Reference to the live framework.
   final DascadeFramework d;
 
-  // Mouse edges
+  // Mouse edges.
   bool _prevMouseDown = false;
   late bool mousePressed;
   late bool mouseReleased;
 
-  // Focus and active elements are tracked by reference.
+  // Key edges (we track only what UI commonly needs).
+  bool _prevLeft = false;
+  bool _prevRight = false;
+  bool _prevUp = false;
+  bool _prevDown = false;
+  bool _prevHome = false;
+  bool _prevEnd = false;
+  bool _prevPageUp = false;
+  bool _prevPageDown = false;
+  bool _prevEnter = false;
+  bool _prevBackspace = false;
+  bool _prevDelete = false;
+
+  late bool leftPressed;
+  late bool rightPressed;
+  late bool upPressed;
+  late bool downPressed;
+  late bool homePressed;
+  late bool endPressed;
+  late bool pageUpPressed;
+  late bool pageDownPressed;
+  late bool enterPressed;
+  late bool backspacePressed;
+  late bool deletePressed;
+
+  /// Focus and active elements are tracked by reference.
   DUElement? focused;
   DUElement? active;
 
-  // Typed character input for this frame (single character or empty).
+  /// Typed character input for this frame (single character or empty).
   String typed = '';
 
-  // Tracks whether any element claimed focus this frame.
+  /// Tracks whether any element claimed focus this frame.
   bool _didFocusThisFrame = false;
 
-  DUIRuntime(this.d);
+  DURuntime(this.d);
 
   /// Current mouse X position (column).
   int get mx => d.mouseX;
@@ -52,25 +78,72 @@ final class DUIRuntime {
   /// True if enter key is held.
   bool get enter => d.enter;
 
+  /// True if arrow keys are held.
+  bool get left => d.left;
+  bool get right => d.right;
+  bool get up => d.up;
+  bool get down => d.down;
+
+  /// True if navigation keys are held.
+  bool get home => d.home;
+  bool get end => d.end;
+  bool get pageUp => d.pageUp;
+  bool get pageDown => d.pageDown;
+
   /// Called at the beginning of each frame to compute edges and typed input.
   void beginFrame() {
+    // Mouse edges.
     mousePressed = !_prevMouseDown && mouseDown;
     mouseReleased = _prevMouseDown && !mouseDown;
+
+    // Typed input.
     typed = d.lastInputChar ?? '';
+
+    // Key edges.
+    leftPressed = !_prevLeft && left;
+    rightPressed = !_prevRight && right;
+    upPressed = !_prevUp && up;
+    downPressed = !_prevDown && down;
+
+    homePressed = !_prevHome && home;
+    endPressed = !_prevEnd && end;
+    pageUpPressed = !_prevPageUp && pageUp;
+    pageDownPressed = !_prevPageDown && pageDown;
+
+    enterPressed = !_prevEnter && enter;
+    backspacePressed = !_prevBackspace && backspace;
+    deletePressed = !_prevDelete && delete;
+
     _didFocusThisFrame = false;
   }
 
   /// Called at the end of each frame to finalize focus state and cleanup.
   void endFrame() {
     _prevMouseDown = mouseDown;
+
+    _prevLeft = left;
+    _prevRight = right;
+    _prevUp = up;
+    _prevDown = down;
+
+    _prevHome = home;
+    _prevEnd = end;
+    _prevPageUp = pageUp;
+    _prevPageDown = pageDown;
+
+    _prevEnter = enter;
+    _prevBackspace = backspace;
+    _prevDelete = delete;
+
     // Clear active if mouse is up.
-    if(!mouseDown) {
+    if (!mouseDown) {
       active = null;
     }
+
     // Clear focus if no one claimed it and mouse was released outside.
-    if(!_didFocusThisFrame && focused != null) {
+    if (!_didFocusThisFrame && focused != null) {
       final bool outside = !focused!.rect.contains(mx, my);
-      if(mouseReleased && outside) {
+      if (mouseReleased && outside) {
         focused = null;
       }
     }
@@ -84,16 +157,17 @@ final class DUIRuntime {
   /// Returns true if the element was both pressed and released inside [r],
   /// and focus was claimed this frame.
   bool clicked(final DUElement e, final DURect r) {
-    if(mousePressed && hovered(r)) {
+    if (mousePressed && hovered(r)) {
       active = e;
     }
-    if(!mouseReleased) return false;
+    if (!mouseReleased) return false;
+
     final bool ok = (active == e) && hovered(r);
-    if(ok) {
+    if (ok) {
       focused = e;
       _didFocusThisFrame = true;
     }
     return ok;
   }
-
+  
 }

@@ -8,27 +8,29 @@ import 'package:dascade/src/ui/geometry/point.dart';
 import 'package:dascade/src/ui/geometry/rect.dart';
 import 'package:dascade/src/ui/renderer.dart';
 import 'package:dascade/src/ui/runtime.dart';
+import 'package:dascade/src/ui/style/color.dart';
+import 'package:dascade/src/ui/style/theme.dart';
 
-/// A multi-line editable or read-only text box widget for Dascade UI.
-///
-/// Features:
-/// - Multi-line text (Enter inserts newline)
-/// - Word-wrapping (prefers breaking at spaces; hard-breaks long words)
-/// - Scrolling (mouse wheel + page up/down)
-/// - Cursor (caret) with blink
-/// - Arrow-key navigation (left/right/up/down) + home/end
-/// - Backspace/delete editing with key-repeat
+/// A multi-line editable or read-only text box widget for Dascade UI. 
+/// 
+/// See example/ui/textbox.dart for usage.
 final class DUTextBox implements DUElement {
-  
+
   /// Whether to draw a border frame around the textbox.
   final bool border;
 
-  /// Whether the textbox can be edited (receives input).
+  /// Whether the textbox can be edited (receives input mutations).
+  ///
+  /// Non-editable boxes can still focus, scroll, and move the caret.
   final bool editable;
 
-  /// The text content inside the box.
-  String text;
+  /// The text to render at the upper left hand corner of the border (if it's active.)
+  final String? borderLabel;
 
+  /// Theme for consistent widget styling.
+  final DUITheme theme;
+
+  /// Current lines of text.
   final List<_DUTextLine> _lines = <_DUTextLine>[];
 
   final _DURepeat _repLeft = _DURepeat();
@@ -41,6 +43,9 @@ final class DUTextBox implements DUElement {
   final _DURepeat _repPageDown = _DURepeat();
   final _DURepeat _repBackspace = _DURepeat();
   final _DURepeat _repDelete = _DURepeat();
+
+  /// The text content inside the box.
+  String text;
 
   /// The rectangle occupied by this element (updated by layout()).
   DURect _rect = DURect(
@@ -69,8 +74,11 @@ final class DUTextBox implements DUElement {
   /// Word wrap width cache.
   int _cachedWrapWidth = -1;
 
-  /// Cached text.
+  /// Cached text (used for wrap caching).
   String _cachedText = '';
+
+  /// Cached text for non-editable auto-scroll (separate from wrap caching).
+  String _autoScrollCachedText = '';
 
   /// Enter is edge-triggered (no repeat).
   bool _prevEnterDown = false;
@@ -79,9 +87,12 @@ final class DUTextBox implements DUElement {
     required String initialText,
     required this.border,
     required this.editable,
+    this.theme = DUITheme.defaultTheme,
+    this.borderLabel
   }) : text = initialText {
     _cursor = text.length;
     _desiredCol = 1 << 30;
+    _autoScrollCachedText = initialText;
   }
 
   @override
@@ -90,73 +101,53 @@ final class DUTextBox implements DUElement {
   @override
   void layout(final DURect rect) {
     _rect = rect;
-    // Clamp cursor if the user externally changed `text`.
     _clampCursor();
   }
 
   DURect get _contentRect => border ? _rect.inset(1) : _rect;
 
   @override
-  void interact(final DUIRuntime r) {
-    if(!editable) return;
-    // Click-to-focus behavior.
+  void interact(final DURuntime r) {
+    // Click-to-focus always (editable or not).
     if(r.clicked(this, _rect)) {
       r.focused = this;
     }
     final bool focused = (r.focused == this);
     // Focus transition handling (snap caret to end).
     if(focused && !_wasFocused) {
-      // Always snap to end when focus is gained (requested behavior).
-      // If you only want this on the *first* focus, gate with _snapToEndOnNextFocus.
       _cursor = text.length;
       _desiredCol = 1 << 30;
       _resetCursorBlink();
-      // Optional: when gaining focus, scroll to the caret immediately.
       final DURect c0 = _contentRect;
-      if (c0.width > 0 && c0.height > 0) {
+      if(c0.width > 0 && c0.height > 0) {
         _rebuildWrapIfNeeded(c0.width);
         _ensureCursorVisible(viewHeight: c0.height);
       }
     }
     _wasFocused = focused;
-    if(!focused) return;
     final DURect c = _contentRect;
     if(c.width <= 0 || c.height <= 0) return;
-    // Ensure wrap model exists before any navigation that depends on visual lines.
+    // Wrap model may be needed for scrolling/clamping.
     _rebuildWrapIfNeeded(c.width);
-    // Mouse wheel scroll (only when hovered over content).
+    // Mouse wheel scroll when hovered (focus not required).
     if(r.hovered(c) && r.wheel != 0) {
       _scrollBy((-r.wheel) * 2, viewHeight: c.height);
     }
-    // Key input is read from the framework directly.
+    // Keyboard interactions only when focused.
+    if(!focused) return;
     final d = r.d;
     final int now = DateTime.now().millisecondsSinceEpoch;
-    if(_repBackspace.consume(d.backspace, now)) {
-      _backspace();
-      _resetCursorBlink();
-      _rebuildWrapIfNeeded(c.width);
-      _ensureCursorVisible(viewHeight: c.height);
-      return;
-    }
-    if(_repDelete.consume(d.delete, now)) {
-      _deleteForward();
-      _resetCursorBlink();
-      _rebuildWrapIfNeeded(c.width);
-      _ensureCursorVisible(viewHeight: c.height);
-      return;
-    }
-    final bool enterDown = d.enter;
-    final bool enterPressed = enterDown && !_prevEnterDown;
-    _prevEnterDown = enterDown;
-    if(enterPressed) {
-      _insert('\n');
-      _resetCursorBlink();
-      _desiredCol = _cursorVisualCol(c.width);
-      _rebuildWrapIfNeeded(c.width);
-      _ensureCursorVisible(viewHeight: c.height);
-      return;
-    }
+    // Page scrolling works regardless of editable.
     bool didNav = false;
+    if(_repPageUp.consume(d.pageUp, now)) {
+      _scrollBy(-c.height, viewHeight: c.height);
+      didNav = true;
+    }
+    if(_repPageDown.consume(d.pageDown, now)) {
+      _scrollBy(c.height, viewHeight: c.height);
+      didNav = true;
+    }
+    // Caret navigation works regardless of editable.
     if(_repLeft.consume(d.left, now)) {
       _moveLeft();
       didNav = true;
@@ -181,23 +172,42 @@ final class DUTextBox implements DUElement {
       _moveEnd(c.width);
       didNav = true;
     }
-    if(_repPageUp.consume(d.pageUp, now)) {
-      _scrollBy(-c.height, viewHeight: c.height);
-      didNav = true;
-    }
-    if(_repPageDown.consume(d.pageDown, now)) {
-      _scrollBy(c.height, viewHeight: c.height);
-      didNav = true;
-    }
     if(didNav) {
       _rebuildWrapIfNeeded(c.width);
       _resetCursorBlink();
       _ensureCursorVisible(viewHeight: c.height);
       return;
     }
+    // From here on: mutations are gated by editable.
+    if(!editable) return;
+    if (_repBackspace.consume(d.backspace, now)) {
+      _backspace();
+      _resetCursorBlink();
+      _rebuildWrapIfNeeded(c.width);
+      _ensureCursorVisible(viewHeight: c.height);
+      return;
+    }
+    if(_repDelete.consume(d.delete, now)) {
+      _deleteForward();
+      _resetCursorBlink();
+      _rebuildWrapIfNeeded(c.width);
+      _ensureCursorVisible(viewHeight: c.height);
+      return;
+    }
+    final bool enterDown = d.enter;
+    final bool enterPressed = enterDown && !_prevEnterDown;
+    _prevEnterDown = enterDown;
+    if(enterPressed) {
+      _insert('\n');
+      _resetCursorBlink();
+      _desiredCol = _cursorVisualCol(c.width);
+      _rebuildWrapIfNeeded(c.width);
+      _ensureCursorVisible(viewHeight: c.height);
+      return;
+    }
     final String t = r.typed;
     if(t.isEmpty) return;
-    // Basic filter: ignore control chars. (Enter is handled above.)
+    // Basic filter: ignore control chars. (Enter handled above.)
     final int code = t.codeUnitAt(0);
     if(code < 32) return;
     _insert(t);
@@ -208,36 +218,51 @@ final class DUTextBox implements DUElement {
   }
 
   @override
-  void render(final DUIRenderer p, final DUIRuntime r) {
+  void render(final DURenderer p, final DURuntime r) {
     final DURect c = _contentRect;
-    final bool focused = editable && (r.focused == this);
+    final bool focused = (r.focused == this);
     if(border) {
-      p.renderFrame(
+      final DUIColor frameStyle = focused ? theme.frameFocused : theme.frame;
+      final String bt = borderLabel == null ? (editable ? 'Text Box' : 'Text Box (Read Only)') : borderLabel!;
+      p.drawFrame(
         _rect,
-        title: editable ? 'Text Box' : 'Text Box (Read Only)',
-        frameFg: focused ? 51 : 15,
-        frameBg: 0,
+        title: bt,
+        frameFg: frameStyle.fgClamped,
+        frameBg: frameStyle.bgClamped,
       );
     }
     if(c.width <= 0 || c.height <= 0) return;
     // Keep wrap cache fresh for current width.
     _rebuildWrapIfNeeded(c.width);
+    // Auto-scroll in non-editable mode when text changes.
+    if(!editable && text != _autoScrollCachedText) {
+      _autoScrollCachedText = text;
+      final int maxScroll = math.max(0, _lines.length - c.height);
+      _scrollLine = maxScroll;
+    }
     // Clear the content area (important: renderText only draws glyphs it touches).
-    _clearContent(p, c, fg: 15, bg: 0);
+    _clearContent(p, c, fg: theme.text.fgClamped, bg: theme.text.bgClamped);
     // Determine visible window.
     final int maxScroll = math.max(0, _lines.length - c.height);
     _scrollLine = _scrollLine.clamp(0, maxScroll);
     final int start = _scrollLine;
     final int end = math.min(_lines.length, start + c.height);
-    final int fg = focused ? 51 : 15;
-    final int bg = 0;
     int y = c.top;
     for(int i = start; i < end; i++) {
       final _DUTextLine line = _lines[i];
-      _renderLine(p, c.left, y, c.width, line.text, fg: fg, bg: bg);
+      _renderLine(
+        p,
+        c.left,
+        y,
+        c.width,
+        line.text,
+        fg: theme.text.fgClamped,
+        bg: theme.text.bgClamped,
+        bold: theme.text.bold,
+      );
       y += 1;
     }
-    // Cursor (caret) with blink, only if focused and editable.
+    // Cursor (caret) with blink when focused and editable.
     if(focused && editable) {
       final bool blinkOn = _blinkOn();
       if(blinkOn) {
@@ -248,21 +273,17 @@ final class DUTextBox implements DUElement {
           final int cx = c.left + col;
           final int cy = c.top + (lineIndex - start);
           if(cx >= c.left && cx < c.right && cy >= c.top && cy < c.bottom) {
-            // Render cursor as an inverted cell.
-            //
-            // IMPORTANT: Never “reuse” an old glyph when text is shorter/empty.
-            // Only sample a glyph if the caret is within the current line text.
             final _DUTextLine ln = _lines[lineIndex];
             final int glyph = (col >= 0 && col < ln.text.length)
-                ? ln.text.codeUnitAt(col)
-                : 0x20; // space
-            p.renderGlyph(
+              ? ln.text.codeUnitAt(col)
+              : 0x20;
+            p.draw(
               cx,
               cy,
               glyph,
-              fg: 0,
-              bg: 51,
-              bold: true,
+              fg: theme.cursor.fgClamped,
+              bg: theme.cursor.bgClamped,
+              bold: theme.cursor.bold,
             );
           }
         }
@@ -271,35 +292,35 @@ final class DUTextBox implements DUElement {
   }
 
   void _clearContent(
-    final DUIRenderer p,
+    final DURenderer p,
     final DURect c, {
     required final int fg,
     required final int bg,
   }) {
     for(int y = c.top; y < c.bottom; y++) {
       for(int x = c.left; x < c.right; x++) {
-        p.renderGlyph(x, y, 0x20, fg: fg, bg: bg);
+        p.draw(x, y, 0x20, fg: fg, bg: bg);
       }
     }
   }
 
   void _renderLine(
-    final DUIRenderer p,
+    final DURenderer p,
     final int x,
     final int y,
     final int width,
     final String s, {
     required final int fg,
     required final int bg,
+    required final bool bold,
   }) {
     final int len = math.min(width, s.length);
     for(int i = 0; i < len; i++) {
-      p.renderGlyph(x + i, y, s.codeUnitAt(i), fg: fg, bg: bg);
+      p.draw(x + i, y, s.codeUnitAt(i), fg: fg, bg: bg, bold: bold);
     }
   }
 
   bool _blinkOn() {
-    // 500ms period; phase-reset makes it "on" immediately after edits/nav.
     final int now = DateTime.now().millisecondsSinceEpoch;
     final int t = now - _blinkPhaseMs;
     return ((t ~/ 500) % 2) == 0;
@@ -339,7 +360,7 @@ final class DUTextBox implements DUElement {
 
   void _moveLeft() {
     if(_cursor > 0) _cursor -= 1;
-    _desiredCol = 1 << 30; // reset; will be set to actual col by caller if needed
+    _desiredCol = 1 << 30;
   }
 
   void _moveRight() {
@@ -357,7 +378,6 @@ final class DUTextBox implements DUElement {
     _setCursorByVisual(targetLine, _desiredCol, wrapWidth);
   }
 
-  /// Forces the caret to be visible immediately (resets blink phase).
   void _resetCursorBlink() {
     _blinkPhaseMs = DateTime.now().millisecondsSinceEpoch;
   }
@@ -367,7 +387,7 @@ final class DUTextBox implements DUElement {
     final _DUVisualPos pos = _cursorVisualPos(wrapWidth);
     final int curLine = pos.line;
     final int curCol = pos.col;
-    if(_desiredCol == (1 << 30)) _desiredCol = curCol;
+    if (_desiredCol == (1 << 30)) _desiredCol = curCol;
     final int targetLine = math.min(_lines.length - 1, curLine + 1);
     _setCursorByVisual(targetLine, _desiredCol, wrapWidth);
   }
@@ -400,7 +420,7 @@ final class DUTextBox implements DUElement {
     final int maxScroll = math.max(0, _lines.length - viewHeight);
     if(line < _scrollLine) {
       _scrollLine = line.clamp(0, maxScroll);
-    } else if(line >= _scrollLine + viewHeight) {
+    } else if (line >= _scrollLine + viewHeight) {
       _scrollLine = (line - viewHeight + 1).clamp(0, maxScroll);
     }
   }
@@ -410,8 +430,6 @@ final class DUTextBox implements DUElement {
       _cachedWrapWidth = wrapWidth;
       _cachedText = text;
       _lines.clear();
-      // IMPORTANT: If the text is empty, ensure our model is exactly one empty line.
-      // This prevents stale glyph sampling and makes clearing deterministic.
       if(text.isEmpty) {
         _lines.add(const _DUTextLine(text: '', start: 0, endExclusive: 0));
         _clampCursor();
@@ -426,34 +444,23 @@ final class DUTextBox implements DUElement {
     _cachedText = text;
     _wrapDirty = false;
     _lines.clear();
-    // Word-wrap strategy:
-    // - Build lines by scanning code-units.
-    // - Track the last break opportunity (space/tab) within the current line.
-    // - When exceeding width:
-    //   - If we have a break point, wrap there.
-    //   - Otherwise hard-wrap at current index (long word).
-    //
-    // Hard newlines ('\n') always create a new visual line (newline is not rendered).
     final String s = text;
     int lineStart = 0;
     int lineLen = 0;
     int lastBreakTextIndex = -1;
     int i = 0;
-    while (true) {
+    while(true) {
       final bool atEnd = (i >= s.length);
       final int ch = atEnd ? -1 : s.codeUnitAt(i);
-      // Hard newline or end -> flush current line.
-      if(atEnd || ch == 0x0A /* \n */) {
+      if(atEnd || ch == 0x0A) {
         _addLineFromRange(lineStart, i);
-        // Move to next line after newline.
-        if (atEnd) break;
+        if(atEnd) break;
         i += 1;
         lineStart = i;
         lineLen = 0;
         lastBreakTextIndex = -1;
         continue;
       }
-      // If we can still fit in this line, consume char.
       if(lineLen < wrapWidth) {
         lineLen += 1;
         if(_isBreakChar(ch)) {
@@ -462,39 +469,32 @@ final class DUTextBox implements DUElement {
         i += 1;
         continue;
       }
-      // lineLen == wrapWidth -> need to wrap BEFORE consuming s[i].
       if(lastBreakTextIndex != -1 && lastBreakTextIndex >= lineStart) {
-        // Wrap BEFORE the whitespace so we don't waste a column on trailing spaces.
         _addLineFromRange(lineStart, lastBreakTextIndex);
-        // Start next line AFTER any whitespace run.
         int j = lastBreakTextIndex;
-        while(j < s.length) {
+        while (j < s.length) {
           final int cch = s.codeUnitAt(j);
-          if(!_isBreakChar(cch)) break;
+          if (!_isBreakChar(cch)) break;
           j += 1;
         }
         lineStart = j;
         lineLen = 0;
         lastBreakTextIndex = -1;
-        // Reprocess current char in the new line.
         i = lineStart;
         continue;
       }
-      // No break point -> hard wrap.
       _addLineFromRange(lineStart, i);
       lineStart = i;
       lineLen = 0;
       lastBreakTextIndex = -1;
-      // Don't advance i; re-process current char in new line.
     }
     if(_lines.isEmpty) {
-      _lines.add(_DUTextLine(text: '', start: 0, endExclusive: 0));
+      _lines.add(const _DUTextLine(text: '', start: 0, endExclusive: 0));
     }
     _clampCursor();
   }
 
   bool _isBreakChar(final int ch) {
-    // Space or tab are break opportunities.
     return ch == 0x20 /* space */ || ch == 0x09 /* tab */;
   }
 
@@ -508,16 +508,13 @@ final class DUTextBox implements DUElement {
   _DUVisualPos _cursorVisualPos(final int wrapWidth) {
     _rebuildWrapIfNeeded(wrapWidth);
     final int idx = _cursor.clamp(0, text.length);
-    // Find the first line such that start <= idx <= endExclusive.
-    for(int li = 0; li < _lines.length; li++) {
+    for (int li = 0; li < _lines.length; li++) {
       final _DUTextLine ln = _lines[li];
-      if(idx < ln.start) continue;
-      if(idx > ln.endExclusive) continue;
-      // Cursor within this line segment.
+      if (idx < ln.start) continue;
+      if (idx > ln.endExclusive) continue;
       final int col = (idx - ln.start).clamp(0, ln.text.length);
       return _DUVisualPos(line: li, col: col);
     }
-    // Fallback: clamp to last line end.
     final int last = _lines.length - 1;
     final _DUTextLine ln = _lines[last];
     return _DUVisualPos(line: last, col: (idx - ln.start).clamp(0, ln.text.length));
@@ -536,7 +533,6 @@ final class DUTextBox implements DUElement {
     final int c = col.clamp(0, ln.text.length);
     _cursor = (ln.start + c).clamp(0, text.length);
   }
-
 }
 
 /// Internal helper for TextBox element. No dart docs on this since it's not something
@@ -562,16 +558,12 @@ final class _DUVisualPos {
 
 /// Key repeat helper for “held” key states.
 ///
-/// Behavior:
-/// - Fires immediately on first press.
-/// - Then repeats after [initialDelayMs].
-/// - Then repeats every [repeatEveryMs] while held.
-/// 
 /// Internal helper for TextBox element. No dart docs on this since it's not something
 /// anyone should mess with.
 final class _DURepeat {
   bool _wasDown = false;
   int _nextAt = 0;
+
   bool consume(
     final bool isDown,
     final int nowMs, {
@@ -594,4 +586,5 @@ final class _DURepeat {
     }
     return false;
   }
+
 }

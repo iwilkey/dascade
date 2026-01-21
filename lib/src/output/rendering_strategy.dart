@@ -123,6 +123,7 @@ abstract class DascadeRenderingStrategy implements DascadeRenderingInterface {
     }
     if(_current == null) {
       _current = DascadeBuffer(_width, _height);
+      _current!.fill();
     } else {
       _current!.resize(_width, _height);
       _current!.clear();
