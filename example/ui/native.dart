@@ -7,11 +7,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:dascade/dascade.dart';
-import 'package:dascade/src/ui/elements/element.dart';
-import 'package:dascade/src/ui/elements/misc/native.dart';
-import 'package:dascade/src/ui/elements/text/textbox.dart';
-import 'package:dascade/src/ui/geometry/layout/layout.dart';
-import 'package:dascade/src/ui/renderer.dart';
 
 Future<void> main() async {
 
@@ -110,7 +105,6 @@ final class Donut {
     final double k1 = width * kK2 * 3 / (8 * (kR1 + kR2)) * kZoom;
     final double cosA = cos(a), sinA = sin(a);
     final double cosB = cos(b), sinB = sin(b);
-    final List<(int xp, int yp, int cell)> calls = [];
     for(double theta = 0; theta < 2 * pi; theta += kThetaSpacing) {
       /// Linear algebra, and more linear algebra...
       final double costheta = cos(theta);
@@ -156,8 +150,6 @@ final class Donut {
             );
             /// Issue draw call to UI native renderer (just like Dascade!)
             renderer.draw(xp, yp, cell);
-            /// Append what should be rendered.
-            calls.add((xp, yp, cell));
           }
         }
       }

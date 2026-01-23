@@ -4,8 +4,6 @@ library;
 import 'dart:math' as math;
 
 import 'package:dascade/dascade.dart';
-import 'package:dascade/src/ui/geometry/point.dart';
-import 'package:dascade/src/ui/geometry/rect.dart';
 
 /// Immediate-mode renderer for UI elements in Dascade.
 ///

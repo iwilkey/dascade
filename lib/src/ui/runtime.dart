@@ -6,8 +6,6 @@
 library;
 
 import 'package:dascade/dascade.dart';
-import 'package:dascade/src/ui/elements/element.dart';
-import 'package:dascade/src/ui/geometry/rect.dart';
 
 /// Manages per-frame input state for the Dascade UI system.
 final class DURuntime {

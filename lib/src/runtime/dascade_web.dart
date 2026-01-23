@@ -12,7 +12,6 @@ import 'package:dascade/src/output/rendering_interface.dart';
 import 'package:dascade/src/output/terminal_interface.dart';
 import 'package:dascade/src/platform/platform.dart';
 import 'package:dascade/src/platform/select_platform.dart';
-import 'package:dascade/src/ui/ui.dart';
 
 Future<void> execute(Future<void> Function(DascadeFramework) app) => (DascadeWeb.execute as dynamic)(app);
 
@@ -66,7 +65,7 @@ final class DascadeWeb implements DascadeFramework {
       // Normal completion (Web)
       while(true) {
         d.beginFrame();
-        _renderCenteredMessage(
+        DURendererUtils.drawCenteredMessage(
           d,
           'Dascade application completed.\n'
           'You may refresh or close your browser.',
@@ -84,7 +83,7 @@ final class DascadeWeb implements DascadeFramework {
       while(true) {
         // Render true VM error, not a million abstraction stacks from js interop.
         d.beginFrame();
-        _renderErrorScreen(d, error, stack);
+        DURendererUtils.drawErrorScreen(d, error, stack);
         d.endFrame();
         await Future.delayed(Duration(milliseconds: 16));
       }
@@ -353,81 +352,5 @@ final class DascadeWeb implements DascadeFramework {
   /// No guarentee this works on every terminal environment, but it certainly works on most native shells.
   @override
   void beep() => _terminal.beep();
-
-  // //////////////////////////////////////////////
-  // PRIVATE (NOT API!)
-  // ///////////////////////////////////////////////
-
-  /// TODO: This will be moved to Dascade UI module when that development begins.
-  static void _drawString(
-    final DascadeFramework d,
-    final int x,
-    final int y,
-    final String text, {
-    required int fg,
-    final int bg = 0,
-  }) {
-    if(y < 0 || y >= d.height) return;
-    final int maxLen = d.width - x;
-    if(maxLen <= 0) return;
-    final String clipped = text.length > maxLen ? text.substring(0, maxLen) : text;
-    for(int i = 0; i < clipped.length; i++) {
-      d.draw(
-        x + i,
-        y,
-        DascadeCell.encode(
-          glyph: clipped.codeUnitAt(i),
-          fg: fg,
-          bg: bg,
-        ),
-      );
-    }
-  }
-
-  /// TODO: This will be moved to Dascade UI module when that development begins.
-  static void _renderCenteredMessage(
-    final DascadeFramework d,
-    final String message,
-  ) {
-    final List<String> lines = message.split('\n');
-    final int startY = (d.height ~/ 2) - (lines.length ~/ 2);
-    for(int i = 0; i < lines.length; i++) {
-      final String line = lines[i];
-      final int startX = (d.width ~/ 2) - (line.length ~/ 2);
-      _drawString(
-        d,
-        startX.clamp(0, d.width),
-        startY + i,
-        line,
-        fg: 250,
-      );
-    }
-  }
-
-  /// TODO: This will be moved to Dascade UI module when that development begins.
-  static void _renderErrorScreen(
-    final DascadeFramework d,
-    final Object error,
-    final StackTrace stack,
-  ) {
-    int y = 0;
-    _drawString(
-      d,
-      0,
-      y++,
-      'DASCADE APPLICATION FATAL ERROR',
-      fg: 196,
-    );
-    y++;
-    for(final String line in error.toString().split('\n')) {
-      if(y >= d.height) return;
-      _drawString(d, 0, y++, line, fg: 231);
-    }
-    y++;
-    for(final String line in stack.toString().split('\n')) {
-      if(y >= d.height) return;
-      _drawString(d, 0, y++, line, fg: 244);
-    }
-  }
 
 }

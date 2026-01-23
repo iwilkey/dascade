@@ -2,14 +2,8 @@
 library;
 
 import 'package:dascade/dascade.dart';
-import 'package:dascade/src/ui/elements/element.dart';
 import 'package:dascade/src/ui/geometry/layout/column.dart';
-import 'package:dascade/src/ui/geometry/layout/layout.dart';
 import 'package:dascade/src/ui/geometry/layout/row.dart';
-import 'package:dascade/src/ui/geometry/point.dart';
-import 'package:dascade/src/ui/geometry/rect.dart';
-import 'package:dascade/src/ui/renderer.dart';
-import 'package:dascade/src/ui/runtime.dart';
 
 /// Root entry point for building and rendering immediate-mode UI in Dascade.
 ///
