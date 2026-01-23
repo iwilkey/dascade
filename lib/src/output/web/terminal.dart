@@ -57,10 +57,6 @@ final class DascadeTerminalWeb implements DascadeTerminalInterface {
   /// Current terminal height in cells.
   int _height = 0;
 
-  // ─────────────────────────────────────────────
-  // Font / glyph metrics
-  // ─────────────────────────────────────────────
-
   /// Horizontal offset applied when rendering a glyph to center it
   /// within its logical cell.
   double _glyphOffsetX = 0;
@@ -122,10 +118,6 @@ final class DascadeTerminalWeb implements DascadeTerminalInterface {
     window.onResize.listen((_) => _resize());
   }
 
-  // ─────────────────────────────────────────────
-  // Runtime font measurement (critical for parity)
-  // ─────────────────────────────────────────────
-
   /// Computes runtime glyph metrics used to center characters
   /// inside logical terminal cells.
   ///
@@ -155,10 +147,6 @@ final class DascadeTerminalWeb implements DascadeTerminalInterface {
     _glyphOffsetY = _glyphOffsetY.roundToDouble();
   }
 
-  // ─────────────────────────────────────────────
-  // Resize handling
-  // ─────────────────────────────────────────────
-
   /// Handles browser resize events.
   ///
   /// This method:
@@ -180,10 +168,6 @@ final class DascadeTerminalWeb implements DascadeTerminalInterface {
     _width = (cssWidth / DascadeWebMetrics.cellWidth).floor();
     _height = (cssHeight / DascadeWebMetrics.cellHeight).floor();
   }
-
-  // ─────────────────────────────────────────────
-  // TerminalInterface implementation
-  // ─────────────────────────────────────────────
 
   /// Exits terminal mode.
   ///
@@ -244,10 +228,6 @@ final class DascadeTerminalWeb implements DascadeTerminalInterface {
     required bool inverse,
   }) {}
 
-  // ─────────────────────────────────────────────
-  // Cell rendering
-  // ─────────────────────────────────────────────
-
   /// Renders a single cell at the given grid position.
   ///
   /// This method:
@@ -278,10 +258,6 @@ final class DascadeTerminalWeb implements DascadeTerminalInterface {
         py + _glyphOffsetY,
       );
   }
-
-  // ─────────────────────────────────────────────
-  // Geometry
-  // ─────────────────────────────────────────────
 
   /// Terminal width in cells.
   @override

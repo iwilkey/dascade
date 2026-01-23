@@ -18,6 +18,10 @@ import 'package:dascade/src/output/rendering_interface.dart';
 /// [emitCell], [clearScreen], and [flush].
 abstract class DascadeRenderingStrategy implements DascadeRenderingInterface {
 
+  /// Whether or not the system renders by cell or by entire line.
+  /// Entire line is obviously way more efficient, so there's no reason to set this to true.
+  static const CELL_BASED_RENDERING = false;
+
   /// Whether or not to force the renderer to not diff cells.
   bool forceNoDiffing = false;
 
@@ -44,6 +48,11 @@ abstract class DascadeRenderingStrategy implements DascadeRenderingInterface {
   ///
   /// Coordinates are guaranteed to be within bounds.
   void emitCell(final int x, final int y, final int cell);
+
+  /// Emits a row of cells to the output backend.
+  ///
+  /// Coordinates are guaranteed to be within bounds.
+  void emitRow(final int y, final List<int> cells);
 
   /// Flushes any buffered output.
   void flush();
@@ -93,17 +102,47 @@ abstract class DascadeRenderingStrategy implements DascadeRenderingInterface {
   /// This method performs a full buffer scan to guarantee correctness.
   /// Output backends are expected to dominate performance costs.
   void _render() {
-    final List<int> nextCells = _next!.raw;
-    final List<int> currentCells = _current!.raw;
-    for(int i = 0; i < nextCells.length; i++) {
-      final int next = nextCells[i];
-      if(next == currentCells[i] && !forceNoDiffing) continue;
-      final int x = i % _width;
-      final int y = i ~/ _width;
-      emitCell(x, y, next);
-      currentCells[i] = next;
+    if(CELL_BASED_RENDERING) {
+      final List<int> nextCells = _next!.raw;
+      final List<int> currentCells = _current!.raw;
+      for(int i = 0; i < nextCells.length; i++) {
+        final int next = nextCells[i];
+        if(next == currentCells[i] && !forceNoDiffing) continue;
+        final int x = i % _width;
+        final int y = i ~/ _width;
+        emitCell(x, y, next);
+        currentCells[i] = next;
+      }
+      flush();
+    } else {
+      final List<int> nextCells = _next!.raw;
+      final List<int> currentCells = _current!.raw;
+      final int width = _width;
+      final int height = _height;
+      for(int y = 0; y < height; y++) {
+        final int rowStart = y * width;
+        bool rowDirty = forceNoDiffing;
+        if(!rowDirty) {
+          for(int x = 0; x < width; x++) {
+            final int i = rowStart + x;
+            if(nextCells[i] != currentCells[i]) {
+              rowDirty = true;
+              break;
+            }
+          }
+        }
+        if(!rowDirty) continue;
+        final List<int> row = List<int>.filled(width, 0, growable: false);
+        for(int x = 0; x < width; x++) {
+          final int i = rowStart + x;
+          final int cell = nextCells[i];
+          row[x] = cell;
+          currentCells[i] = cell;
+        }
+        emitRow(y, row);
+      }
+      flush();
     }
-    flush();
   }
 
   /// Synchronizes internal buffers with terminal dimensions.

@@ -57,6 +57,58 @@ final class DascadeNativeRenderer extends DascadeRenderingStrategy {
     _terminal.write(glyph == 0 ? ' ' : String.fromCharCode(glyph));
   }
 
+  /// Emits an entire row to the native terminal.
+  ///
+  /// This implementation performs a single cursor move, then emits
+  /// glyphs left-to-right while minimizing ANSI state changes.
+  ///
+  /// Rows are written using write([entire_line]) to reduce syscall overhead.
+  @override
+  void emitRow(final int y, final List<int> cells) {
+    _terminal.moveCursor(y, 0);
+    int lastFg = -1;
+    int lastBg = -1;
+    bool lastBold = false;
+    bool lastUnderline = false;
+    bool lastInverse = false;
+    final StringBuffer line = StringBuffer();
+    for(int x = 0; x < cells.length; x++) {
+      final int cell = cells[x];
+      final int fg = DascadeCell.foreground(cell);
+      final int bg = DascadeCell.background(cell);
+      final bool bold = DascadeCell.isBold(cell);
+      final bool underline = DascadeCell.isUnderline(cell);
+      final bool inverse = DascadeCell.isInverse(cell);
+      if(fg != lastFg ||
+          bg != lastBg ||
+          bold != lastBold ||
+          underline != lastUnderline ||
+          inverse != lastInverse) {
+        if(line.isNotEmpty) {
+          _terminal.write(line.toString());
+          line.clear();
+        }
+        _terminal.applyCellStyle(
+          fg: fg,
+          bg: bg,
+          bold: bold,
+          underline: underline,
+          inverse: inverse,
+        );
+        lastFg = fg;
+        lastBg = bg;
+        lastBold = bold;
+        lastUnderline = underline;
+        lastInverse = inverse;
+      }
+      final int glyph = DascadeCell.glyph(cell);
+      line.write(glyph == 0 ? ' ' : String.fromCharCode(glyph));
+    }
+    if(line.isNotEmpty) {
+      _terminal.write(line.toString());
+    }
+  }
+
   /// Flushes any buffered terminal output.
   @override
   void flush() => _terminal.flush();

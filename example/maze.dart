@@ -1,27 +1,8 @@
 /// Demonstrates maze generation and A* pathfinding using Dascade.
-/// 
-/// This example visualizes the internal state of the A* algorithm
-/// (open set, closed set, current node, and final path) in real time.
 library;
 
 import 'dart:math';
 import 'package:dascade/dascade.dart';
-
-/// Needed for A*. This isn't really a tutorial on A* so I'm not going to comment
-/// a lot of this.
-final class Node {
-  final int x;
-  final int y;
-  double g = double.infinity;
-  double h = 0;
-  Node? parent;
-  Node(this.x, this.y);
-  double get f => g + h;
-  @override
-  bool operator ==(Object other) => other is Node && other.x == x && other.y == y;
-  @override
-  int get hashCode => x * 73856093 ^ y * 19349663;
-}
 
 /// Demonstrates maze generation and A* pathfinding using Dascade.
 /// Author: Ian Wilkey
@@ -211,4 +192,20 @@ Future<void> main() async {
     }
   });
 
+}
+
+/// Needed for A*. This isn't really a tutorial on A* so I'm not going to comment
+/// a lot of this.
+final class Node {
+  final int x;
+  final int y;
+  double g = double.infinity;
+  double h = 0;
+  Node? parent;
+  Node(this.x, this.y);
+  double get f => g + h;
+  @override
+  bool operator ==(Object other) => other is Node && other.x == x && other.y == y;
+  @override
+  int get hashCode => x * 73856093 ^ y * 19349663;
 }

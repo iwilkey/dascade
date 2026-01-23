@@ -6,22 +6,21 @@ library;
 import 'dart:async';
 import 'dart:math';
 
+/// You're gonna need this ;)
 import 'package:dascade/dascade.dart';
 
 Future<void> main() async {
 
+  /// Remember, Dascade always requires the following framework entry point!
   await Dascade.run((d) async {
 
-    /// I don't want Sidecar to open on print statements.
-    d.forceNoSidecar = true;
-
-    /// Should the app be running?
+    /// Application run state.
     bool running = true;
 
     /// Sure, I'll take a donut!
     final Donut donut = Donut();
 
-    // Create UI elements with persistent state outside the main loop...
+    // Remember, Dascade UI works by creating UI elements with persistent state outside the main loop.
 
     /// Our native canvas where our donut will live.
     final DUNative native = DUNative(border: true);
@@ -39,28 +38,40 @@ Future<void> main() async {
 
     // True FPS counters (average over ~1 second).
     int frames = 0;
-
-    // Main UI loop
+    
+    /// Remember, Dascade is an immediate-mode framework so an application loop is essential for
+    /// proper usage.
     while (running) {
+
+      /// Remember, it's always a good idea to have a clean application exit strategy!
       if(d.escape) running = false;
+
+      /// Remember, Dascade requires beginFrame() before you issue any draw calls or UI!
       d.beginFrame();
-      /// Simple layout:
-      /// A large vertical column that extends the entire rendering plane, with the native renderer taking up
-      /// 80% and a text box taking up the remaining 20%.
-      d.ui.column(
-        <DUElement>[
-          /// A native element is essentially just a sub-rendering canvas you can draw on similar to Dascade's primitive
-          /// rendering features.
-          native.draw((final int width, final int height, final DURenderer renderer) {
-            donut.draw(width, height, renderer);
-          }),
-          text
-        ],
-        layout: DULayout.custom([0.80, 0.20]),
-        gap: 0,
-        pad: 0,
+
+      /// Remember, if you're going to have UI this frame, you must always supply a root()!
+      d.ui.root(
+        /// Simple layout:
+        /// A large vertical column that extends the entire rendering plane, with the native renderer taking up
+        /// 80% and a text box taking up the remaining 20%.
+        d.ui.column(
+          <DUElement>[
+            /// A native element is essentially just a sub-rendering canvas you can draw on similar to Dascade's primitive
+            /// rendering features.
+            native.draw((final int width, final int height, final DURenderer renderer) {
+              donut.draw(width, height, renderer);
+            }),
+            text
+          ],
+          layout: DULayout.custom([0.80, 0.20]),
+          gap: 0,
+          pad: 0,
+        )
       );
+
+      /// Remember, Dascade always requires an explicit endFrame() to flush drawn elements to the screen!
       d.endFrame();
+      
       donut.update();
       // True FPS: count frames and report average FPS over the last ~1 second.
       frames++;
@@ -72,6 +83,8 @@ Future<void> main() async {
         lt = now;
         frames = 0;
       }
+
+      /// Remember, it's always a good idea to throttle the frame rate!
       await Future.delayed(const Duration(milliseconds: 16));
     }
   });

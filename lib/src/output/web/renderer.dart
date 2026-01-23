@@ -43,6 +43,21 @@ final class DascadeWebRenderer extends DascadeRenderingStrategy {
     _terminal.renderCell(x, y, cell);
   }
 
+  /// Emits an entire row to the web terminal.
+  ///
+  /// This implementation iterates left-to-right and renders each
+  /// cell directly into the backing canvas. Unlike native terminals,
+  /// there is no cursor state or ANSI minimization to manage.
+  ///
+  /// Row-based rendering exists here primarily to share traversal
+  /// logic with other platforms and does not reduce draw calls.
+  @override
+  void emitRow(final int y, final List<int> cells) {
+    for(int x = 0; x < cells.length; x++) {
+      _terminal.renderCell(x, y, cells[x]);
+    }
+  }
+
   /// Flush is a no op for the web backend.
   @override
   void flush() {}

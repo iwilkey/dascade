@@ -24,6 +24,9 @@ final class DUNative implements DUElement {
   /// Theme for consistent styling.
   final DUITheme theme;
 
+  /// The text to render at the upper left hand corner of the border (if it's active.)
+  final String? borderLabel;
+
   DURect _rect = DURect(
     upperLeft: DUPoint(x: 0, y: 0),
     lowerRight: DUPoint(x: 0, y: 0),
@@ -34,6 +37,7 @@ final class DUNative implements DUElement {
   DUNative({
     required this.border,
     this.theme = DUITheme.defaultTheme,
+    this.borderLabel
   });
 
   /// Sets the per-frame draw callback and returns this element for inline use.
@@ -66,7 +70,7 @@ final class DUNative implements DUElement {
     if(border) {
       p.drawFrame(
         _rect,
-        title: null,
+        title: borderLabel,
         frameFg: theme.frame.fgClamped,
         frameBg: theme.frame.bgClamped,
       );

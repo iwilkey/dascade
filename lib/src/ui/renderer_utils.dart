@@ -27,6 +27,7 @@ extension DURendererUtils on DURenderer {
           glyph: clipped.codeUnitAt(i),
           fg: fg,
           bg: bg,
+          bold: true
         ),
       );
     }
@@ -36,6 +37,9 @@ extension DURendererUtils on DURenderer {
   static void drawCenteredMessage(
     final DascadeFramework d,
     final String message,
+    {
+      final int color = 250
+    }
   ) {
     final List<String> lines = message.split('\n');
     final int startY = (d.height ~/ 2) - (lines.length ~/ 2);
@@ -47,7 +51,7 @@ extension DURendererUtils on DURenderer {
         startX.clamp(0, d.width),
         startY + i,
         line,
-        fg: 250,
+        fg: color,
       );
     }
   }

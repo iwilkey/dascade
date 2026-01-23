@@ -215,6 +215,8 @@ final class DascadeNativeTerminal implements DascadeTerminalInterface {
   void cleanup() {
     if(Platform.isWindows) {
       DascadeWindowsVT.restoreConsoleMode();
+    } else {
+      disableRawMode();
     }
     destoryScreenBuffer();
     write('\x1b[0m');

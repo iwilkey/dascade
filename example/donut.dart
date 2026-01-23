@@ -5,6 +5,62 @@ library;
 import 'dart:math';
 import 'package:dascade/dascade.dart';
 
+/// Example of Dascade's excellent handle of primitive rendering and performance capabilities.
+/// Author: Ian Wilkey
+Future<void> main() async {
+
+  /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
+  /// of run()'s callback function.
+  await Dascade.run((final DascadeFramework dascade) async {
+    
+    dascade.forceNoSidecar = true;
+
+    /// Sure, I'll take a donut.
+    final Donut donut = Donut();
+  
+    /// Dascade is an immediate-mode framework; this means it draws information as your program runs. Because of this,
+    /// it's best practice to define your main thread loop like the one below.
+    bool running = true;
+
+    /// Let's count the frames. For fun. And because I want to show you Sidecar.
+    int frames = 0;
+
+    while(running) {
+
+      /// Dascade offers an extremely simple terminal Input API. Here's a couple rules we'll poll for to exit the application.
+      if(dascade.escape) running = false;
+
+      /// Every time you'd like to issue draw calls to Dascade, you must begin your frame as such.
+      dascade.beginFrame();
+
+      /// All of your draw calls exist inside, like so.
+      donut.draw(dascade);
+
+      /// When you're done issue draw calls, make sure to call endFrame() so you can see your picture render in the terminal!
+      dascade.endFrame();
+
+      /// Let's go ahead and update the Donut's internal state for the next frame. In this case, we're just rotating it.
+      donut.update();
+
+      /// It's good practice to throttle your loop to ensure that your main thread isn't starved of resources.
+      await Future.delayed(const Duration(milliseconds: 16));
+
+      /// Dascade Native CAN handle print() statements! It just does so with the "Sidecar" system. After the first print() statement is
+      /// invoked, a new Sidecar instance (your platform's native terminal) will popup and show you all statements thereafter in
+      /// real-time. Note you may opt-out of Sidecar by using dascade.forceNoSidecar = true, but make sure to set that before your first print
+      /// statement is invoked.
+      /// 
+      /// On web-based runtimes, you can just use the developer tools to see your print statements.
+      frames++;
+      if(frames % 10 == 0) {
+        /// Before uncommenting this, set forceNoSidecar to false to open Sidecar!
+        //print("Frame: $frames");
+      }
+    }
+  });
+
+}
+
 /// This is a one-to-one Dart port of Aikon's donut.c found here: https://www.a1k0n.net/2011/07/20/donut-math.html
 /// 
 /// It also includes an example of using Dascade's primitive rendering API correctly.
@@ -95,59 +151,5 @@ final class Donut {
     a += 0.04;
     b += 0.02;
   }
-
-}
-
-/// Example of Dascade's excellent handle of primitive rendering and performance capabilities.
-/// Author: Ian Wilkey
-Future<void> main() async {
-
-  /// Everytime you want to use Dascade, this is the only correct way to create a new runtime. Your application lives inside
-  /// of run()'s callback function.
-  await Dascade.run((final DascadeFramework dascade) async {
-    
-    dascade.forceNoSidecar = true;
-
-    /// Sure, I'll take a donut.
-    final Donut donut = Donut();
-  
-    /// Dascade is an immediate-mode framework; this means it draws information as your program runs. Because of this,
-    /// it's best practice to define your main thread loop like the one below.
-    bool running = true;
-
-    /// Let's count the frames. For fun. And because I want to show you Sidecar.
-    int frames = 0;
-
-    while(running) {
-      /// Dascade offers an extremely simple terminal Input API. Here's a couple rules we'll poll for to exit the application.
-      if(dascade.escape) running = false;
-
-      /// Every time you'd like to issue draw calls to Dascade, you must begin your frame as such.
-      dascade.beginFrame();
-
-      /// All of your draw calls exist inside, like so.
-      donut.draw(dascade);
-
-      /// When you're done issue draw calls, make sure to call endFrame() so you can see your picture render in the terminal!
-      dascade.endFrame();
-
-      /// Let's go ahead and update the Donut's internal state for the next frame. In this case, we're just rotating it.
-      donut.update();
-
-      /// It's good practice to throttle your loop to ensure that your main thread isn't starved of resources.
-      await Future.delayed(const Duration(milliseconds: 16));
-
-      /// Dascade Native CAN handle print() statements! It just does so with the "Sidecar" system. After the first print() statement is
-      /// invoked, a new Sidecar instance (your platform's native terminal) will popup and show you all statements thereafter in
-      /// real-time. Note you may opt-out of Sidecar by using dascade.forceNoSidecar = true, but make sure to set that before your first print
-      /// statement is invoked.
-      /// 
-      /// On web-based runtimes, you can just use the developer tools to see your print statements.
-      frames++;
-      if(frames % 10 == 0) {
-        //print("Frame: $frames");
-      }
-    }
-  });
 
 }

@@ -1,11 +1,5 @@
 /// Simple Snake game implemented using Dascade's immediate-mode API using a primitive rendering approach. This is not to showcase UI functionality; 
 /// See other examples for that.
-/// 
-/// This example demonstrates:
-/// - Keyboard input polling
-/// - Discrete-time game updates
-/// - Primitive rendering
-/// - Resize-safe logic
 library;
 
 import 'dart:math';

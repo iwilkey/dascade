@@ -15,15 +15,14 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dascade/dascade.dart';
 import 'package:dascade/src/input/input_interface.dart';
 import 'package:dascade/src/input/native/input.dart';
 import 'package:dascade/src/output/rendering_interface.dart';
 import 'package:dascade/src/output/terminal_interface.dart';
 import 'package:dascade/src/platform/platform.dart';
 import 'package:dascade/src/platform/select_platform.dart';
-import 'package:dascade/src/runtime/dascade_framework.dart';
 import 'package:dascade/src/sidecar/sidecar.dart';
-import 'package:dascade/src/ui/ui.dart';
 
 Future<void> execute(Future<void> Function(DascadeFramework) app) => (DascadeNative.execute as dynamic)(app);
 
@@ -89,9 +88,9 @@ final class DascadeNative implements DascadeFramework {
       await app(d);
     }, (error, stack) {
       d._dispose();
-      stderr.writeln("\n================================");
+      stderr.writeln("================================");
       stderr.writeln("DASCADE APPLICATION FATAL ERROR");
-      stderr.writeln("================================\n");
+      stderr.writeln("================================");
       stderr.writeln(error);
       stderr.writeln(stack);
       if(_sidecarActive) {
@@ -387,6 +386,17 @@ final class DascadeNative implements DascadeFramework {
   /// Ends the current frame, computes diffs, and renders changes.
   @override
   void endFrame() {
+    if(DascadeUI.overflow) {
+      DURendererUtils.drawCenteredMessage(this, 
+'''
+=-=-=-=-=-=-=-=-=-=-=-=-=-=
+Dascade UI Overflow.
+Some elements cannot be seen.
+Increase your terminal size.
+=-=-=-=-=-=-=-=-=-=-=-=-=-=
+''',
+      color: 1);
+    }
     _renderer.end();
     _ui.end();
     _input.flush();

@@ -1,4 +1,4 @@
-/// A focusable, interactable button in Dascade UI.
+/// A focusable, interactable radio element in Dascade UI.
 library;
 
 import 'dart:math' as math;
@@ -11,26 +11,26 @@ import 'package:dascade/src/ui/runtime.dart';
 import 'package:dascade/src/ui/style/color.dart';
 import 'package:dascade/src/ui/style/theme.dart';
 
-/// A focusable, interactable button. See example/ui/button.dart for usage.
-final class DUButton implements DUElement {
+/// A focusable, interactable radio element. See example/ui/radio.dart for usage.
+final class DURadio implements DUElement {
 
-  /// Button label rendered inside the button.
+  /// Radio label rendered inside the element.
   final String label;
 
-  /// Whether to draw a border frame around the button.
+  /// Whether to draw a border frame around the element.
   final bool border;
 
+  /// Theme for consistent element styling.
+  final DUITheme theme;
+  
   /// The text to render at the upper left hand corner of the border (if it's active.)
   final String? borderLabel;
 
-  /// Theme for consistent widget styling.
-  final DUITheme theme;
+  /// Persistent checked state.
+  bool state = false;
 
-  /// True while the button is being held down this frame.
+  /// True while the element is being held down this frame.
   bool down = false;
-
-  /// True for exactly one frame when the button is released inside its bounds.
-  bool fire = false;
 
   DURect _rect = DURect(
     upperLeft: DUPoint(x: 0, y: 0),
@@ -40,12 +40,16 @@ final class DUButton implements DUElement {
   bool _prevEnterDown = false;
   bool _keyboardHeld = false;
 
-  DUButton({
+  DURadio({
     required this.label,
-    this.border = true,
+    required this.border,
+    required this.state,
     this.theme = DUITheme.defaultTheme,
     this.borderLabel
   });
+
+  /// Returns the current checked state (immediate-mode read).
+  bool value() => state;
 
   @override
   DURect get rect => _rect;
@@ -59,21 +63,12 @@ final class DUButton implements DUElement {
 
   @override
   void interact(final DURuntime r) {
-    // Per-frame outputs.
-    fire = false;
-    // Focus on click (mouse).
     final bool clicked = r.clicked(this, _rect);
     if(clicked) {
       r.focused = this;
     }
     final bool focused = (r.focused == this);
-    // Mouse press/hold logic:
-    // - r.clicked() sets active on press, focuses on release-in-bounds.
-    // - We compute "down" based on being active + mouseDown.
     final bool mouseHoldingThis = (r.active == this) && r.mouseDown;
-    // Keyboard press/hold logic:
-    // - When focused, Enter press -> begin hold.
-    // - Enter release -> fire (if still focused and hovered or just focused by click?).
     final bool enterDown = r.d.enter;
     final bool enterPressed = enterDown && !_prevEnterDown;
     final bool enterReleased = !enterDown && _prevEnterDown;
@@ -81,29 +76,18 @@ final class DUButton implements DUElement {
     if(focused && enterPressed) {
       _keyboardHeld = true;
     }
-    // Down state is true if either mouse is holding us or keyboard is holding us.
     down = mouseHoldingThis || _keyboardHeld;
-    // Fire on release:
-    // - Mouse: when mouseReleased AND we were active AND released inside rect.
-    // - Keyboard: when enterReleased AND we were keyboardHeld AND still focused.
-    //
-    // For mouse, r.clicked(...) already verifies "pressed then released inside".
     if(clicked) {
-      fire = true;
+      state = !state;
     }
     if(_keyboardHeld && enterReleased) {
       _keyboardHeld = false;
-      // Requirement: fire iff key goes UP after pressing AND still within bounds.
-      // For keyboard, "within bounds" is interpreted as "still focused" (since
-      // keyboard activation uses focus rather than pointer position).
       if(focused) {
-        fire = true;
+        state = !state;
       }
     }
-    // If we lose focus, drop keyboard hold.
     if(!focused) {
       _keyboardHeld = false;
-      // If we aren't active via mouse either, ensure down is false.
       down = mouseHoldingThis;
     }
   }
@@ -113,11 +97,10 @@ final class DUButton implements DUElement {
     final DURect c = _contentRect;
     if(c.width <= 0 || c.height <= 0) return;
     final bool focused = (r.focused == this);
-    // Pick style strictly from theme.
     final DUIColor face = down
       ? (focused ? theme.buttonDownFocused : theme.buttonDown)
       : (focused ? theme.buttonFocused : theme.button);
-    // Border/frame uses theme frame colors.
+    // Frame.
     if(border) {
       final DUIColor frameStyle = focused ? theme.frameFocused : theme.frame;
       p.drawFrame(
@@ -127,28 +110,29 @@ final class DUButton implements DUElement {
         frameBg: frameStyle.bgClamped,
       );
     }
-    // Clear content to face bg (and face fg for spaces).
     _clearContent(p, c, fg: face.fgClamped, bg: face.bgClamped, bold: face.bold);
-    // Center label (best-effort, clip-safe).
     final int w = c.width;
     final int h = c.height;
     if(w <= 0 || h <= 0) return;
-    final String capped = (label.length <= w) ? label : label.substring(0, w);
-    final int startX = (c.left + math.max(0, (w - capped.length) ~/ 2)).floor();
-    // If vertical space is even, draw:
-    // [label]
-    // ------
-    // so the label "looks" vertically centered.
+    // Build "[x] " prefix + label (clipped).
+    final String mark = state ? '[x] ' : '[ ] ';
+    final int maxLabel = math.max(0, w - mark.length);
+    final String lab = (label.length <= maxLabel) ? label : label.substring(0, maxLabel);
+    final String full = mark + lab;
+    final int startX = c.left + math.max(0, (w - full.length) ~/ 2);
+    // Same vertical centering trick as button:
+    // If even rows, draw underline row to make the label look centered.
     final bool evenRows = (h % 2) == 0;
     final int labelY = evenRows ? (c.top + (h ~/ 2) - 1) : (c.top + (h ~/ 2));
     // Label row.
-    for(int i = 0; i < capped.length; i++) {
+    final int len = math.min(w, full.length);
+    for(int i = 0; i < len; i++) {
       final int x = startX + i;
       if(x < c.left || x >= c.right) continue;
       p.draw(
         x,
         labelY,
-        capped.codeUnitAt(i),
+        full.codeUnitAt(i),
         fg: face.fgClamped,
         bg: face.bgClamped,
         bold: face.bold,
@@ -158,8 +142,7 @@ final class DUButton implements DUElement {
     if(evenRows) {
       final int lineY = labelY + 1;
       if(lineY >= c.top && lineY < c.bottom) {
-        final int dashCount = capped.length;
-        for(int i = 0; i < dashCount; i++) {
+        for(int i = 0; i < len; i++) {
           final int x = startX + i;
           if(x < c.left || x >= c.right) continue;
           p.draw(

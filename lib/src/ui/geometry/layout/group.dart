@@ -1,12 +1,10 @@
 /// Base class for layout containers like [DURow] and [DUColumn].
 library;
 
-import 'package:dascade/src/ui/elements/element.dart';
+import 'dart:math' as math;
+
+import 'package:dascade/dascade.dart';
 import 'package:dascade/src/ui/geometry/layout/axis.dart';
-import 'package:dascade/src/ui/geometry/point.dart';
-import 'package:dascade/src/ui/geometry/rect.dart';
-import 'package:dascade/src/ui/renderer.dart';
-import 'package:dascade/src/ui/runtime.dart';
 
 /// Base class for layout containers like [DURow] and [DUColumn].
 ///
@@ -76,41 +74,107 @@ abstract class DULayoutGroup extends DUElement {
   }
 
   /// Splits the given rect into `children.length` slots based on weights and gap.
+  ///
+  /// Best-effort behavior when cramped:
+  /// - If there isn't enough room for gaps, gaps are reduced to 0.
+  /// - If there still isn't enough room, allocate 1 cell to as many children as possible.
+  /// - Remaining children receive 0-size rects.
   List<DURect> _split(final DURect rect) {
-    final int mainSize = axis == DULayoutAxis.horizontal ? rect.width : rect.height;
-    final int crossA = axis == DULayoutAxis.horizontal ? rect.top : rect.left;
-    final int crossB = axis == DULayoutAxis.horizontal ? rect.bottom : rect.right;
-    final int totalGap = gap * (children.length - 1);
-    final int available = mainSize - totalGap;
-    if(available <= 0) {
+    final int n = children.length;
+    if(n == 0) return const <DURect>[];
+    final bool horiz = axis == DULayoutAxis.horizontal;
+    final int mainSize = horiz ? rect.width : rect.height;
+    final int crossA = horiz ? rect.top : rect.left;
+    final int crossB = horiz ? rect.bottom : rect.right;
+    if(mainSize <= 0) {
+      /// we have to drop all children.
+      DascadeUI.overflow = true;
       return List<DURect>.generate(
-        children.length,
+        n,
         (_) => DURect(upperLeft: rect.upperLeft, lowerRight: rect.upperLeft),
       );
     }
+    const int minMain = 3;
+    // First: try with the requested gap.
+    int effectiveGap = gap;
+    int totalGap = effectiveGap * (n - 1);
+    int available = mainSize - totalGap;
+    // If gaps make it impossible to fit even ONE min-sized child, drop gaps.
+    if(available < minMain) {
+      effectiveGap = 0;
+      totalGap = 0;
+      available = mainSize;
+    }
+    // If we still can't fit n * minMain, we cannot satisfy the guarantee for all children.
+    // Best-effort: give minMain to as many as possible, remainder get 0.
+    final int maxMinChildren = available ~/ minMain;
+    if(maxMinChildren < n) {
+      /// we have to drop some children.
+      DascadeUI.overflow = true;
+      final List<int> sizes = List<int>.filled(n, 0);
+      final int k = math.max(0, math.min(n, maxMinChildren));
+      for(int i = 0; i < k; i++) {
+        sizes[i] = minMain;
+      }
+      // Any leftover space goes to the first visible child.
+      final int usedMin = k * minMain;
+      final int leftover = available - usedMin;
+      if(k > 0 && leftover > 0) {
+        sizes[0] += leftover;
+      }
+      return _rectsFromSizes(
+        rect,
+        sizes,
+        gap: effectiveGap,
+        crossA: crossA,
+        crossB: crossB,
+        horiz: horiz,
+      );
+    }
+    // Otherwise: everyone can get at least minMain.
+    // Do your normal weighted distribution over the remaining space.
     final double sum = weights.fold(0.0, (a, b) => a + b);
-    if(sum <= 0) {
-      return List<DURect>.generate(
-        children.length,
-        (_) => DURect(upperLeft: rect.upperLeft, lowerRight: rect.upperLeft),
-      );
+    final List<int> sizes = List<int>.filled(n, minMain);
+    int remaining = available - (n * minMain);
+    if(remaining > 0 && sum > 0.0) {
+      int used = 0;
+      final List<int> extra = List<int>.filled(n, 0);
+      for(int i = 0; i < n; i++) {
+        final int s = (remaining * (weights[i] / sum)).floor();
+        extra[i] = s;
+        used += s;
+      }
+      int rem = remaining - used;
+      for(int i = 0; i < n && rem > 0; i++, rem--) {
+        extra[i] += 1;
+      }
+      for(int i = 0; i < n; i++) {
+        sizes[i] += extra[i];
+      }
     }
-    final List<int> sizes = List<int>.filled(children.length, 0);
-    int used = 0;
-    for(int i = 0; i < children.length; i++) {
-      final int s = (available * (weights[i] / sum)).floor();
-      sizes[i] = s;
-      used += s;
-    }
-    int rem = available - used;
-    for(int i = 0; i < children.length && rem > 0; i++, rem--) {
-      sizes[i] += 1;
-    }
-    int cursor = axis == DULayoutAxis.horizontal ? rect.left : rect.top;
-    final List<DURect> out = [];
-    for(int i = 0; i < children.length; i++) {
+    return _rectsFromSizes(
+      rect,
+      sizes,
+      gap: effectiveGap,
+      crossA: crossA,
+      crossB: crossB,
+      horiz: horiz,
+    );
+  }
+
+  List<DURect> _rectsFromSizes(
+    final DURect rect,
+    final List<int> sizes, {
+    required final int gap,
+    required final int crossA,
+    required final int crossB,
+    required final bool horiz,
+  }) {
+    int cursor = horiz ? rect.left : rect.top;
+    final List<DURect> out = <DURect>[];
+    for(int i = 0; i < sizes.length; i++) {
       final int size = sizes[i];
-      final DURect slot = axis == DULayoutAxis.horizontal
+      final DURect slot = horiz
         ? DURect(
             upperLeft: DUPoint(x: cursor, y: crossA),
             lowerRight: DUPoint(x: cursor + size, y: crossB),
