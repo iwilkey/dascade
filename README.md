@@ -96,7 +96,7 @@ Dascade is built around the following principles:
 - Native terminal backend
 - Experimental web backend
 
-See below Snake running in Dascade. (I mean, it's staple right?)
+See below Snake running in Dascade. (I mean, it's a staple right?)
 
 <p align="center">
   <img src="assets/snake.gif" alt="Snake running in Dascade">

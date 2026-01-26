@@ -1,6 +1,6 @@
 name: dascade
 description: A lightweight immediate-mode TUI framework for Dart with buffered & differential rendering and ANSI styling.
-version: 0.0.1-dev.1
+version: 1.0.0
 repository: https://github.com/iwilkey/dascade.git
 issue_tracker: https://github.com/iwilkey/dascade/issues
 
@@ -8,8 +8,12 @@ environment:
   sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
+
   # the only dependency, and let's keep it that way!
   dart_console: ^4.1.2
+
+  # okay, we also need the foreign function interface.
+  ffi: ^2.1.5
 
 dev_dependencies:
   build_runner: ^2.10.5
