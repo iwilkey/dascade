@@ -1,5 +1,14 @@
 
 # Dascade
+---
+## The Dart ASCII Console Application Development Environment
+
+Need a TUI? 
+Don't want to manage a native window? 
+Like Dart? 
+Me too.
+
+Enter Dascade: an experimental, immediate-mode TUI framework for Dart focused on determinism, performance, and portability.
 
 <p align="center">
   <img src="assets/hero.gif" alt="Example of the Dascade runtime">
