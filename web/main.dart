@@ -1,4 +1,4 @@
-import '../example/ui/button/button.dart' as app;
+import '../example/ui/layout/list.dart' as app;
 
 void main() {
   app.main();

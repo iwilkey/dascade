@@ -1,11 +1,23 @@
 
 # Dascade
 
+<p align="center">
+  <img src="assets/hero.gif" alt="Example of the Dascade runtime">
+</p>
+
 **Dascade** (Dart ASCII Console Application Development Environment) is an experimental, immediate‑mode TUI (Terminal User Interface) framework for Dart.
 
 It is designed to be **lightweight, deterministic, and portable**, enabling developers to build rich terminal applications without retained widget trees, implicit layout passes, or hidden state.
 
-Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D scenes rendered directly in the terminal.
+Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D/2D scenes rendered directly in the terminal.
+
+For example, debugging an A* implementation becomes far more intuitive when the algorithm’s internal state is rendered directly to the terminal.
+
+With Dascade, we can visualize the open sets, closed sets, and the final path as the algorithm runs — making correctness and performance issues immediately obvious.
+
+<p align="center">
+  <img src="assets/maze.gif" alt="A* pathfinding visualization in Dascade">
+</p>
 
 ---
 
@@ -29,6 +41,10 @@ Dascade is built around the following principles:
 - No widget lifecycles or retained trees
 - Application state lives in *your code*, not inside widgets
 
+<p align="center">
+  <img src="assets/list.png" alt="An example of List view in Dascade.">
+</p>
+
 ### Deterministic Layout
 - Layout assigns concrete `DURect`s
 - UI elements **trust the rect they are given**
@@ -38,6 +54,16 @@ Dascade is built around the following principles:
 - Rendering is double‑buffered
 - Only changed cells are emitted to the backend
 - Optimized for native terminals, with fallback modes
+
+### Input
+
+- Keyboard input is supported in all environments
+- Mouse input is supported in ANSI-capable terminals and in the web backend
+- Platform-specific input details are normalized by the backend
+
+<p align="center">
+  <img src="assets/input.gif" alt="Dascade parsing terminal ANSI mouse events in real-time">
+</p>
 
 ### Minimal Dependencies
 - Uses `dart_console` for native terminal I/O
@@ -62,11 +88,17 @@ Dascade is built around the following principles:
 - Native terminal backend
 - Experimental web backend
 
+See below Snake running in Dascade. (I mean, it's staple right?)
+
+<p align="center">
+  <img src="assets/snake.gif" alt="Snake running in Dascade">
+</p>
+
 ---
 
 ## Performance
 
-Thanks to buffered, line-based differential rendering and 256-color ANSI support, Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D scenes displayed directly in the terminal.
+Thanks to buffered, line-based differential rendering and 256-color ANSI support, Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D/2D scenes displayed directly in the terminal.
 
 ---
 
@@ -282,9 +314,17 @@ Stock elements included in the repository:
 - Optional borders
 - Keyboard input handling
 
+<p align="center">
+  <img src="assets/text.png" alt="An example of Dascade UI's textbox element">
+</p>
+
 ### Button
 - Clickable via keyboard or mouse
 - Immediate‑mode interaction state
+
+<p align="center">
+  <img src="assets/button.png" alt="An example of Dascade UI's button element">
+</p>
 
 ### Radio Button
 - Mutually exclusive selection
@@ -373,8 +413,11 @@ Examples live in the `example/` directory and double as regression tests.
 
 ---
 
-
 ## Web-Based Development (Experimental)
+
+<p align="center">
+  <img src="assets/web.gif" alt="Dascade runtime, compiled to the web">
+</p>
 
 Dascade includes **experimental support for running applications in the browser**.
 This allows the same immediate-mode UI code used for native terminals to be rendered
