@@ -74,7 +74,7 @@ It is designed to be **lightweight, deterministic, and portable**, enabling deve
 
 ## Why Dascade?
 
-Often, developers need a text-based user interface that is both portable and predictable Dascade exists to make it possible to write a TUI once and run it anywhere, in native terminals or on the web, without sacrificing control, performance, or determinism.
+Often, developers need a text-based user interface that is both portable and predictable. Dascade exists to make it possible to write a TUI once and run it anywhere, in native terminals or on the web, without sacrificing control, performance, or determinism.
 
 With Dascade, you can build interactive applications directly in the terminal, visualize complex systems in real time, and reason about layout and input explicitly. There is no hidden state, no implicit reflow, and no magic.
 
@@ -512,11 +512,53 @@ Layouts:
 Scrollable lists are provided via `DUList`.
 
 ```dart
-final DUList list = DUList(border: true);
+/// Outside main loop!
+final DUList vlist = DUList(border: true, borderLabel: "Vertical List");
+final DUList hlist = DUList(border: true, borderLabel: "Horizontal List", horizontal: true);
 
-list.show(
-  items,
-  itemSize: 3,
+/// Omitting some other widget initialization here...
+
+/// ... in application loop, between d.beginFrame() and d.endFrame():
+d.ui.root(
+  /// Define layout here.
+  d.ui.column([
+    /// Have a text box take up the top half of the screen.
+    text,
+    /// Have the two lists side-by-side on the bottom half of the screen.
+    d.ui.row([
+      /// Show a vertical list of 32 different text box elements.
+      vlist.show(
+        [
+          for(int i = 0; i < 32; i++) 
+            DUTextBox(
+              initialText: "Item $i",
+              border: true,
+              editable: true,
+            )
+        ], itemSize: 3
+      ),
+      /// Show a horizontal list of 64 different text box elements, laid out in a column themselves.
+      hlist.show(
+        [
+          for(int i = 0; i < 32; i++) ...[
+            d.ui.column([
+              DUTextBox(
+                initialText: "Top $i",
+                border: true,
+                editable: true,
+              ),
+              DUTextBox(
+                initialText: "Bottom $i",
+                border: true,
+                editable: true,
+              ),
+            ], layout: DULayout.equal())
+          ]
+        ], itemSize: 8
+      ),
+
+    ], layout: DULayout.equal())
+  ], layout: DULayout.equal())
 );
 ```
 
@@ -532,11 +574,14 @@ Lists are heavily used in UI examples.
 Text boxes display and optionally edit text.
 
 ```dart
-DUTextBox(
+/// Outside of loop...
+final DUTextBox text = DUTextBox(
   initialText: "Hello",
   border: true,
   editable: true,
 );
+
+/// In your loop, lay it out using Dascade UI's layout engine.
 ```
 
 Features:
@@ -549,17 +594,18 @@ Features:
 Buttons provide basic interaction.
 
 ```dart
+/// Outside main loop!
 final DUButton button = DUButton(label: "Press Me!", borderLabel: "Button");
+
+/// ... in main loop
 
 /// layout button in a row, column, or list like other UI elements...
 
-/// ... in loop:
-if (d.fire) {
+if (button.fire) {
   // handle a complete press cycle (up -> down.) This also applies to 'Enter' strikes.
 }
-
 /// or...
-if(d.down) {
+if(button.down) {
   /// do something while the button is held down.
 }
 
@@ -574,12 +620,59 @@ Button state is immediate:
 Radio buttons model mutually exclusive state.
 
 ```dart
-final DURadioGroup group = DURadioGroup();
+/// Outside of loop...
+final DURadio radio0 = DURadio(label: 'Option A', border: true, state: false, borderLabel: "Radio");
+final DURadio radio1 = DURadio(label: 'Option B', border: true, state: false, borderLabel: "Radio");
+final DURadio radio2 = DURadio(label: 'Option C', border: true, state: false, borderLabel: "Radio");
+final DURadio radio3 = DURadio(label: 'Option D', border: true, state: false, borderLabel: "Radio");
 
-DURadioButton(
-  label: "Option A",
-  group: group,
+/// Let's track state over frames to ensure we print only when states change.
+bool r0s = false;
+bool r1s = false;
+bool r2s = false;
+bool r3s = false;
+
+/// Omitting some other widget initialization here.
+
+/// ... in application loop, between d.beginFrame() and d.endFrame():
+d.ui.root(
+  d.ui.column(
+    <DUElement>[
+      text,
+      d.ui.row([
+        d.ui.column([
+          radio0,
+          radio1,
+          radio2,
+          radio3
+        ], layout: DULayout.equal()),
+        info
+      ], layout: DULayout.flex([2, 8]))
+    ],
+    layout: DULayout.flex([2, 1]),
+    gap: 0,
+    pad: 0,
+  )
 );
+
+/// Simple state machine and output of radio states to our text canvas.
+if(r0s != radio0.state) {
+  r0s = radio0.state;
+  text.text += "\nRadio 0: $r0s";
+}
+/// radio.value() is the same as radio.state; whatever makes more sense to you!
+if(r1s != radio1.value()) {
+  r1s = radio1.state;
+  text.text += "\nRadio 1: $r1s";
+}
+if(r2s != radio2.state) {
+  r2s = radio2.state;
+  text.text += "\nRadio 2: $r2s";
+}
+if(r3s != radio3.value()) {
+  r3s = radio3.state;
+  text.text += "\nRadio 3: $r3s";
+}
 ```
 
 State lives outside the widget and is read each frame.
@@ -589,10 +682,53 @@ State lives outside the widget and is read each frame.
 Dropdowns allow compact selection from a list.
 
 ```dart
-DUDropdown(
-  items: options,
-  selectedIndex: index,
+final DUTextBox text = DUTextBox(
+  borderLabel: "List View (Demo)",
+  initialText: "Dropdowns are great for multiple-line text-based option menus where one selection is true until the next selection has been made.",
+  border: true,
+  editable: false,
 );
+
+final DUTextBox info = DUTextBox(
+  borderLabel: "More Information",
+  initialText: 'Dropdown menu elements allow selection from a list of plain text options and retain the selected state until a new choice is explicitly made by the user or programmatically updated.',
+  border: true,
+  editable: false,
+);
+
+final DUDropdown dd = DUDropdown(
+  borderLabel: "Dropdown",
+  label: 'Color',
+  options: <String>[
+    'Red', 
+    'Orange', 
+    'Yellow', 
+    'Green', 
+    'Blue', 
+    'Indigo', 
+    'Violet'
+  ],
+  border: true,
+);
+
+/// ... in application loop, between d.beginFrame() and d.endFrame():
+d.ui.root(
+  /// Define layout here.
+  d.ui.column(
+    [
+      text,
+      d.ui.row([
+        dd.show(),
+        info
+      ], layout: DULayout.flex([5, 15]))
+    ], layout: DULayout.flex([16, dd.open() ? 6 : 1]) /// Notice how I change the layout based on Dropdown state.
+  )
+);
+
+/// Let's output the current dropdown menu state to the text field, for fun.
+if(dd.changed) {
+  /// I can now read dd.value()! It will be the new changed value from dropdown.
+}
 ```
 
 Used for configuration-style UIs.
