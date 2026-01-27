@@ -1,122 +1,189 @@
-
-# Dascade
-## The Dart ASCII Console Application Development Environment
-
-Need a TUI? 
-Don't want to manage a native window? 
-Like Dart? 
-Me too.
-
-Enter Dascade: an experimental, immediate-mode TUI framework for Dart focused on determinism, performance, and portability.
-
 <p align="center">
-  <img src="assets/hero.gif" alt="Example of the Dascade runtime">
+  <img src="assets/hero.png" alt="Example of the Dascade runtime">
 </p>
 
-**Dascade** (Dart ASCII Console Application Development Environment) is an experimental, immediate‑mode TUI (Terminal User Interface) framework for Dart.
+The **D**art **AS**CII **C**onsole **A**pplication **D**evelopment **E**nvironment
+
+**Dascade** is an experimental, immediate‑mode TUI (Terminal User Interface) framework for Dart.
 
 It is designed to be **lightweight, deterministic, and portable**, enabling developers to build rich terminal applications without retained widget trees, implicit layout passes, or hidden state.
 
-Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D/2D scenes rendered directly in the terminal.
+## Table of Contents
 
-For example, debugging an A* implementation becomes far more intuitive when the algorithm’s internal state is rendered directly to the terminal.
+- [Why Dascade?](#why-dascade)
+- [Project Status](#project-status)
+- [Core Philosophy](#core-philosophy)
+  - [Immediate-Mode UI](#immediate-mode-ui)
+  - [Buffered + Line-Based Differential Rendering](#buffered--line-based-differential-rendering)
+  - [Real-time ANSI-based Input](#real-time-ansi-based-input)
+  - [Deterministic Layout](#deterministic-layout)
+  - [Minimal Dependencies](#minimal-dependencies)
+  - [Cross-Platform by Design](#cross-platform-by-design)
+- [Features](#features)
+- [Performance](#performance)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Creating a Dart Project](#creating-a-dart-project)
+  - [Adding Dascade](#adding-dascade)
+  - [Importing Dascade](#importing-dascade)
+  - [Running Your App](#running-your-app)
+  - [Compilation and Distribution](#compilation-and-distribution)
+    - [macOS](#macos)
+      - [Building a Native Binary](#building-a-native-binary)
+      - [Notes](#notes)
+    - [Linux](#linux)
+      - [Building a Native Binary](#building-a-native-binary-1)
+      - [Notes](#notes-1)
+    - [Windows](#windows)
+      - [Building a Native Binary](#building-a-native-binary-2)
+      - [Notes](#notes-2)
+  - [Distribution Considerations](#distribution-considerations)
+- [Dascade API Overview](#dascade-api-overview)
+  - [Application Lifecycle](#application-lifecycle)
+  - [Immediate-Mode Frame Loop](#immediate-mode-frame-loop)
+  - [Drawing Cells Directly](#drawing-cells-directly)
+  - [Colors and Styling](#colors-and-styling)
+  - [Keyboard Input](#keyboard-input)
+  - [Mouse Input](#mouse-input)
+  - [Terminal Dimensions](#terminal-dimensions)
+  - [UI System Overview](#ui-system-overview)
+  - [Layout Containers](#layout-containers)
+  - [Lists](#lists)
+  - [Text Boxes](#text-boxes)
+  - [Buttons](#buttons)
+  - [Radio Buttons](#radio-buttons)
+  - [Dropdowns](#dropdowns)
+  - [Animation and Timing](#animation-and-timing)
+  - [Algorithms and Visualization](#algorithms-and-visualization)
+  - [Web Backend Usage](#web-backend-usage)
+- [Layout System](#layout-system)
+- [UI Elements (Current)](#ui-elements-current)
+- [Rendering Model](#rendering-model)
+- [Naming Conventions](#naming-conventions)
+- [Examples](#examples)
+- [Web-Based Development (Experimental)](#web-based-development-experimental)
+  - [Overview](#overview)
+  - [Project Structure](#project-structure)
+  - [Running the Web Build](#running-the-web-build)
+  - [Web Limitations](#web-limitations)
+  - [Contributing to Web Support](#contributing-to-web-support)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Author & Maintainer](#author--maintainer)
 
-With Dascade, we can visualize the open sets, closed sets, and the final path as the algorithm runs — making correctness and performance issues immediately obvious.
+## Why Dascade?
+
+Often, developers need a text-based user interface that is both portable and predictable Dascade exists to make it possible to write a TUI once and run it anywhere, in native terminals or on the web, without sacrificing control, performance, or determinism.
+
+With Dascade, you can build interactive applications directly in the terminal, visualize complex systems in real time, and reason about layout and input explicitly. There is no hidden state, no implicit reflow, and no magic.
+
+**For example**: Let's say I want to port a1k0n's donut.c to Dart, and I want to see it's performance with a nice textbox near the bottom of my terminal. See image below.
+
+<p align="center">
+  <img
+    src="assets/donut.gif"
+    alt="Example of the Dascade runtime"
+    style="max-width: 100%; height: auto;"
+  >
+</p>
+
+**Another example**: Let's say I need to debug an A* implementation before it goes in one of my projects. Using Dascade, I can visualize the open sets, closed sets, and the final path as the algorithm runs — making correctness and performance issues immediately obvious. See image below.
 
 <p align="center">
   <img src="assets/maze.gif" alt="A* pathfinding visualization in Dascade">
 </p>
 
----
-
-## Project Status
-
-⚠️ **EXPERIMENTAL — ACTIVE DEVELOPMENT**
-
-Dascade is usable today, but APIs are still evolving.  
-Breaking changes may occur as the architecture is refined.
-
-The core systems — rendering, layout, input, and widgets — are already functional and exercised by real examples.
-
----
-
-## Core Philosophy
-
-Dascade is built around the following principles:
-
-### Immediate‑Mode UI
-- UI is described every frame
-- No widget lifecycles or retained trees
-- Application state lives in *your code*, not inside widgets
+**How about this**: I need a quick way to create a terminal application that organizes text-based data in a layout and allows interaction through scrollable lists. See image below.
 
 <p align="center">
   <img src="assets/list.png" alt="An example of List view in Dascade.">
 </p>
 
-### Deterministic Layout
-- Layout assigns concrete `DURect`s
-- UI elements **trust the rect they are given**
-- Elements never perform layout calculations themselves
+**Consider**: Building a classic Snake game as a quick programming exercise becomes trivial with Dascade. Arbitrary cell-based drawing and real-time ANSI input allow the entire implementation to fit in roughly 50 lines of code. See image below.
 
-### Buffered + Differential Rendering
-- Rendering is double‑buffered
+<p align="center">
+  <img src="assets/snake.gif" alt="Snake running in Dascade">
+</p>
+
+And anything else you can think of. With Dascade, any terminal becomes your canvas.
+
+## Project Status
+
+**EXPERIMENTAL: ACTIVE DEVELOPMENT**
+
+Dascade is under active development, but is already highly usable and customizable.
+
+**However**: The core systems, rendering, layout, input, and widgets, are highly functional and efficient, exercised by real examples in the example/ directory.
+
+Dascade is designed to be flexible enough that higher-level abstractions can be built on top of the core framework to support a wide range of systems and workflows. While this may involve some boilerplate today, continued development focuses on providing faster, more ergonomic tools for mocking up production-ready applications.
+
+## Core Philosophy
+
+Dascade's features are built around the following principles:
+
+### Immediate-Mode UI
+- Draw calls are issued every frame with no implicit state
+- UI layout and interaction is described and parsed each frame
+- No element/widget lifecycles or retained trees
+- **Bottom line**: Application state lives in *your code*, not inside a Dascade-managed state.
+
+### Buffered + Line-Based Differential Rendering
+- Rendering is double‑buffered, so **FLICKERING** is **NOT POSSIBLE**.
 - Only changed cells are emitted to the backend
 - Optimized for native terminals, with fallback modes
+- Web-based Canvas 2D terminal and ANSI emulation (experimental)
 
-### Input
+### Real-time ANSI-based Input
 
 - Keyboard input is supported in all environments
 - Mouse input is supported in ANSI-capable terminals and in the web backend
 - Platform-specific input details are normalized by the backend
 
+**For example**: Below is a demonstration of ANSI mouse events translated into Dascade’s immediate-mode input API.
+
 <p align="center">
-  <img src="assets/input.gif" alt="Dascade parsing terminal ANSI mouse events in real-time">
+  <img src="assets/input.gif" alt="Dascade parsing terminal ANSI mouse events in real-time" style="max-width: 100%; height: auto;">
 </p>
+
+### Deterministic Layout
+- The Dascade UI Layout Engine assigns concrete `DURect`s
+- UI elements **trust the rect they are given**
+- Elements never perform layout calculations themselves
 
 ### Minimal Dependencies
 - Uses `dart_console` for native terminal I/O
 - ANSI behavior implemented internally where practical
 - No heavy runtime abstractions
 
-### Cross‑Platform by Design
+### Cross-Platform by Design
 - macOS, Linux, Windows terminals
-- Experimental web backend via software terminal emulation
-
----
+- Experimental web backend via software terminal and ANSI emulation
 
 ## Features
 
+- Immediate-mode primitive draw API
 - Immediate‑mode UI API
 - Deterministic layout engine
-- Buffered rendering with diffing
+- Line-base buffered rendering with diffing
 - ANSI color and style support
 - Keyboard input (cross‑platform)
 - Mouse input (ANSI SGR / X10)
 - Optional element borders
-- Native terminal backend
+- Native terminal backend with Win32 Virtual Terminal support
 - Experimental web backend
-
-See below Snake running in Dascade. (I mean, it's a staple right?)
-
-<p align="center">
-  <img src="assets/snake.gif" alt="Snake running in Dascade">
-</p>
-
----
 
 ## Performance
 
-Thanks to buffered, line-based differential rendering and 256-color ANSI support, Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D/2D scenes displayed directly in the terminal.
-
----
-
+Thanks to buffered, line-based differential rendering and 256-color ANSI support, Dascade is performant enough to support real-time animations and advanced ASCII graphics, including software-rendered 3D/2D scenes displayed directly in the terminal. Why? Because reasons.
 
 ## Installation
 
 Dascade is a **Dart library** distributed through the Dart package manager, `pub`.
-If you are new to Dart, this section walks through the basics before installing Dascade.
 
----
+**Sidenote: Why Dart?**: Dart may not be the fastest language in every scenario, but it offers excellent support for cross-platform compilation, strong async primitives, and a familiar C-style syntax that makes it well suited for this kind of framework. **TLDR**: In my opinion, Dart is somewhat slept on.
+
+If you are new to Dart, this section walks through the basics before installing Dascade.
 
 ### Prerequisites
 
@@ -131,10 +198,7 @@ You can verify Dart is installed by running:
 dart --version
 ```
 
-If Dart is not installed, follow the official installation guide:
-https://dart.dev/get-dart
-
----
+If Dart is not installed, follow the official installation guide: https://dart.dev/get-dart
 
 ### Creating a Dart Project
 
@@ -148,15 +212,13 @@ cd my_app
 This will generate a standard Dart project structure, including a
 `pubspec.yaml` file where dependencies are declared.
 
----
-
 ### Adding Dascade
 
 Open your `pubspec.yaml` file and add Dascade under `dependencies`:
 
 ```
 dependencies:
-  dascade: ^0.x.x
+  dascade: ^1.0.0
 ```
 
 > Version numbers are subject to change while Dascade is experimental.
@@ -167,8 +229,6 @@ Then fetch dependencies:
 dart pub get
 ```
 
----
-
 ### Importing Dascade
 
 Once installed, you can import Dascade in your Dart source files:
@@ -177,119 +237,409 @@ Once installed, you can import Dascade in your Dart source files:
 import 'package:dascade/dascade.dart';
 ```
 
-You are now ready to build terminal UIs with Dascade.
-
----
+You are now ready to build interactive terminal experiences with Dascade, the rest is just syntax and learning Dascade's API.
 
 ### Running Your App
 
-Most Dascade applications are run directly from the terminal:
+Dascade applications are run directly from the terminal:
 
 ```
-dart run
+dart run [path_to_your_projects_main_file].dart
 ```
 
 For best results:
 - Use a modern terminal with ANSI support
-- Avoid terminals that aggressively redraw or buffer output
+- Avoid terminals that aggressively redraw or heavily buffer output. That said, supporting challenging terminal environments is an explicit goal of Dascade’s development. If a particular environment behaves poorly, please open an issue.
 
----
+### Compilation and Distribution
 
-## Example Usage
+Dascade applications are standard Dart programs. This means they can be compiled
+and distributed using Dart’s built-in tooling without any special handling from
+the framework itself.
+
+Below are the recommended workflows for distributing Dascade applications on
+each supported desktop platform.
+
+### macOS
+
+On macOS, Dascade applications can be compiled into a standalone native executable using Dart’s AOT compiler.
+
+### Building a Native Binary
+
+From your project root:
+
+```
+dart compile exe bin/main.dart -o dascade_app
+```
+
+This produces a native executable named `dascade_app`.
+
+You can then distribute this binary directly, or bundle it inside a `.app`
+wrapper if desired.
+
+### Notes
+
+- The executable runs in a terminal environment
+- Users must launch it from Terminal or a terminal emulator
+- ANSI-compatible terminals are recommended
+
+### Linux
+
+Linux builds follow the same process as macOS.
+
+### Building a Native Binary
+
+```
+dart compile exe bin/main.dart -o dascade_app
+```
+
+The resulting binary can be distributed directly.
+
+### Notes
+
+- Most modern Linux terminals fully support ANSI escape sequences
+- Ensure executable permissions are preserved when distributing:
+  ```
+  chmod +x dascade_app
+  ```
+
+### Windows
+
+On Windows, Dascade applications compile to a native `.exe` file.
+
+### Building a Native Binary
+
+```
+dart compile exe bin/main.dart -o dascade_app.exe
+```
+
+This produces a standard Windows executable.
+
+### Notes
+
+- Windows Terminal is recommended
+- Older terminals may require enabling Virtual Terminal processing
+- Dascade uses Win32 Virtual Terminal support where available
+
+### Distribution Considerations
+
+Because Dascade applications are terminal-based:
+
+- They are typically distributed as command-line tools
+- Installers are optional, not required
+- Cross-compilation is not supported; binaries must be built per platform
+
+For cross-platform distribution, it is common to:
+- Build binaries on each target platform
+- Or distribute source code and allow users to compile locally
+
+## Dascade API Overview
+
+This section introduces the core Dascade API by example. Rather than presenting large, copy-paste programs, it focuses on small, composable snippets that explain *how to think in Dascade*.
+
+All examples are drawn directly from patterns used throughout the `example/`
+directory.
+
+### Application Lifecycle
+
+Every Dascade application starts the same way.
 
 ```dart
-library;
+await Dascade.run((DascadeFramework d) async {
+  // Application code lives here
+});
+```
 
-import 'package:dascade/dascade.dart';
+`Dascade.run`:
+- Initializes the runtime
+- Sets up rendering and input backends
+- Owns the terminal lifecycle
+- Provides a `DascadeFramework` handle (`d`)
 
-Future<void> main() async {
+All interaction with Dascade happens through this handle.
 
-  /// Dascade always requires the following framework entry point!
-  await Dascade.run((d) async {
+### Immediate-Mode Frame Loop
 
-    /// Application run state.
-    bool running = true;
+Dascade is an immediate-mode framework. UI and rendering are described every frame inside an explicit loop.
 
-    // Dascade UI works by creating UI elements with persistent state outside the main loop.
+```dart
+bool running = true;
 
-    final DUTextBox text = DUTextBox(
-      borderLabel: "List View (Demo)",
-      initialText: "The List View is one of Dascade's most powerful elements when it comes to layout!",
-      border: true,
-      editable: false,
-    );
+while (running) {
 
-    final DUList vlist = DUList(border: true, borderLabel: "Vertical List");
-    final DUList hlist = DUList(border: true, borderLabel: "Horizontal List", horizontal: true);
+  /// Make your application has an exit strategy!
+  if (d.escape) running = false;
 
-    /// Dascade is an immediate-mode framework so an application loop is essential for
-    /// proper usage.
-    while(running) {
+  d.beginFrame();
 
-      /// It's always a good idea to have a clean application exit strategy!
-      if(d.escape) running = false;
+  // draw / UI calls here
 
-      /// Dascade requires beginFrame() before you issue any draw calls or UI!
-      d.beginFrame();
-      
-      /// If you're going to have UI this frame, you must always supply a root()!
-      d.ui.root(
-        /// Define layout here.
-        d.ui.column([
-          /// Have a text box take up the top half of the screen.
-          text,
-          /// Have the two lists side-by-side on the bottom half of the screen.
-          d.ui.row([
-            /// Show a vertical list of 32 different text box elements.
-            vlist.show(
-              [
-                for(int i = 0; i < 32; i++) 
-                  DUTextBox(
-                    initialText: "Item $i",
-                    border: true,
-                    editable: true,
-                  )
-              ], itemSize: 3
-            ),
-            /// Show a horizontal list of 64 different text box elements, laid out in a column themselves.
-            hlist.show(
-              [
-                for(int i = 0; i < 32; i++) ...[
-                  d.ui.column([
-                    DUTextBox(
-                      initialText: "Top $i",
-                      border: true,
-                      editable: true,
-                    ),
-                    DUTextBox(
-                      initialText: "Bottom $i",
-                      border: true,
-                      editable: true,
-                    ),
-                  ], layout: DULayout.equal())
-                ]
-              ], itemSize: 8
-            ),
+  d.endFrame();
 
-          ], layout: DULayout.equal())
-        ], layout: DULayout.equal())
-      );
-      
-      /// Dascade always requires an explicit endFrame() to flush drawn elements to the screen!
-      d.endFrame();
-
-      /// It's always a good idea to throttle the frame rate!
-      await Future.delayed(const Duration(milliseconds: 16));
-    }
-  });
+  /// Make sure to throttle the frame rate to avoid starving the main thread.
+  await Future.delayed(const Duration(milliseconds: 16));
 
 }
 ```
 
-Dascade uses a **frame loop model**.  
-UI is rebuilt every frame based on current application state.
+Key points:
+- `beginFrame()` must be called before issuing draw or UI calls
+- `endFrame()` flushes the frame to the backend
+- State lives in your variables, not in the framework
 
----
+## Drawing Cells Directly
+
+At the lowest level, Dascade renders individual cells.
+
+```dart
+d.draw(
+  x,
+  y,
+  DascadeCell.encode(
+    glyph: '@'.codeUnitAt(0),
+    fg: 46,
+    bg: 0,
+  ),
+);
+```
+
+- Coordinates are integer cell positions
+- Colors use 256-color ANSI indices
+- Rendering is buffered and diffed automatically
+
+### Colors and Styling
+
+Cells are encoded using ANSI color indices.
+
+```dart
+final int green = 46;
+final int gray  = 240;
+final int red   = 196;
+```
+
+Foreground and background colors are independent.
+No global style state is retained between frames.
+
+### Keyboard Input
+
+Keyboard input is exposed as immediate-mode state.
+
+```dart
+if (d.escape) {
+  running = false;
+}
+```
+
+Typical usage:
+- Poll keys each frame
+- Update application state accordingly
+- No event queues or callbacks
+
+### Mouse Input
+
+Mouse input is supported in ANSI-capable terminals and on the web.
+
+```dart
+final bool justClicked = d.mouseLeftDown && !previousMouseDown;
+
+previousMouseDown = d.mouseLeftDown;
+```
+
+Mouse state includes:
+- Button state
+- Position
+- Frame-accurate transitions
+
+ANSI mouse events are normalized into the same API across platforms.
+
+## Terminal Dimensions
+
+Terminal size is available through the framework handle.
+
+```dart
+final int width  = d.width;
+final int height = d.height;
+```
+
+Important:
+- Dimensions are only valid *after* a frame has begun
+- Initialization that depends on size should be deferred
+
+This pattern appears in maze and visualization examples.
+
+### UI System Overview
+
+Dascade includes a minimal immediate-mode UI system. UI is optional and layered on top of the renderer.
+
+Every UI frame must begin with a root container.
+
+```dart
+d.ui.root(
+  d.ui.column([
+    // elements
+  ]),
+);
+```
+
+UI elements render into rectangles assigned by layout.
+They do not perform layout calculations themselves.
+
+### Layout Containers
+
+Layouts are explicit and composable.
+
+### Columns and Rows
+
+```dart
+d.ui.column([
+  elementA,
+  elementB,
+]);
+
+d.ui.row([
+  left,
+  right,
+], layout: DULayout.equal());
+```
+
+Layouts:
+- Assign `DURect`s to children
+- Handle spacing and overflow
+- Are deterministic
+
+### Lists
+
+Scrollable lists are provided via `DUList`.
+
+```dart
+final DUList list = DUList(border: true);
+
+list.show(
+  items,
+  itemSize: 3,
+);
+```
+
+Lists:
+- Can be vertical or horizontal
+- Handle clipping and scrolling
+- Accept arbitrary child elements
+
+Lists are heavily used in UI examples.
+
+### Text Boxes
+
+Text boxes display and optionally edit text.
+
+```dart
+DUTextBox(
+  initialText: "Hello",
+  border: true,
+  editable: true,
+);
+```
+
+Features:
+- Editable or read-only
+- Optional borders and labels
+- Keyboard-driven input
+
+### Buttons
+
+Buttons provide basic interaction.
+
+```dart
+final DUButton button = DUButton(label: "Press Me!", borderLabel: "Button");
+
+/// layout button in a row, column, or list like other UI elements...
+
+/// ... in loop:
+if (d.fire) {
+  // handle a complete press cycle (up -> down.) This also applies to 'Enter' strikes.
+}
+
+/// or...
+if(d.down) {
+  /// do something while the button is held down.
+}
+
+```
+
+Button state is immediate:
+- True only on the frame it is activated
+- No retained callbacks
+
+### Radio Buttons
+
+Radio buttons model mutually exclusive state.
+
+```dart
+final DURadioGroup group = DURadioGroup();
+
+DURadioButton(
+  label: "Option A",
+  group: group,
+);
+```
+
+State lives outside the widget and is read each frame.
+
+### Dropdowns
+
+Dropdowns allow compact selection from a list.
+
+```dart
+DUDropdown(
+  items: options,
+  selectedIndex: index,
+);
+```
+
+Used for configuration-style UIs.
+
+### Animation and Timing
+
+Animation is achieved by updating state each frame.
+
+```dart
+/// In your loop, you can update variables until your heart's content. Their state will be reflected next loop.
+angle += 0.03;
+```
+
+Combined with `Future.delayed`, this enables:
+- Smooth animation
+- Deterministic timing
+- Controlled frame rates
+
+Used in examples like Snake and the ASCII donut.
+
+### Algorithms and Visualization
+
+Because Dascade exposes raw cell drawing, it is well suited for:
+
+- Pathfinding visualization
+- Cellular automata
+- Debugging algorithms
+- Educational tools
+
+The maze and A* examples demonstrate this style.
+
+### Web Backend Usage
+
+The same API is used on the web backend.
+No changes to application code are required.
+
+Only the entry point differs.
+
+```dart
+import '../example/ui/button/button.dart' as app;
+
+void main() {
+  app.main();
+}
+```
+
+Rendering and input are forwarded to a browser-based backend. See Web Development section for more information.
 
 ## Layout System
 
@@ -307,8 +657,6 @@ Layout behavior:
 
 Layout assigns `DURect`s; elements render within them.
 
----
-
 ## UI Elements (Current)
 
 Stock elements included in the repository:
@@ -322,17 +670,9 @@ Stock elements included in the repository:
 - Optional borders
 - Keyboard input handling
 
-<p align="center">
-  <img src="assets/text.png" alt="An example of Dascade UI's textbox element">
-</p>
-
 ### Button
 - Clickable via keyboard or mouse
 - Immediate‑mode interaction state
-
-<p align="center">
-  <img src="assets/button.png" alt="An example of Dascade UI's button element">
-</p>
 
 ### Radio Button
 - Mutually exclusive selection
@@ -351,23 +691,7 @@ All UI elements:
 - Render only within their assigned rect
 - Maintain no hidden global state
 
----
-
-## Input Model
-
-Dascade exposes immediate‑mode input state:
-
-- `down`
-- `justDown`
-- `justUp`
-
-Supported input:
-- Keyboard (mirrors `dart_console` behavior)
-- Mouse (ANSI SGR 1006 and X10)
-
-Input parsing is backend‑agnostic and normalized.
-
----
+**Contributions are welcome, especially in expanding the set of built-in Dascade UI elements.**
 
 ## Rendering Model
 
@@ -382,8 +706,6 @@ Backends:
 - Web software terminal emulator/renderer (experimental)
 
 Resize events trigger full buffer re‑sync.
-
----
 
 ## Naming Conventions
 
@@ -401,11 +723,9 @@ Examples:
 
 These conventions are intentional and required for contributions.
 
----
-
 ## Examples
 
-The repository includes working examples:
+The repository includes working examples.
 
 - Button demo
 - Radio buttons
@@ -419,8 +739,6 @@ The repository includes working examples:
 
 Examples live in the `example/` directory and double as regression tests.
 
----
-
 ## Web-Based Development (Experimental)
 
 <p align="center">
@@ -431,10 +749,7 @@ Dascade includes **experimental support for running applications in the browser*
 This allows the same immediate-mode UI code used for native terminals to be rendered
 inside a web page via a software-emulated terminal backend.
 
-⚠️ Web support is **experimental** and under active development.
-APIs, performance characteristics, and rendering behavior may change.
-
----
+Web support is **experimental** and under active development. APIs, performance characteristics, and rendering behavior may change.
 
 ### Overview
 
@@ -447,9 +762,8 @@ The web backend works by:
 - Forwarding input events to Dascade’s existing input system
 
 This is **not** a native terminal emulator and does not rely on `<canvas>` or DOM text nodes.
-All rendering is handled by Dascade’s web backend.
 
----
+All rendering is handled by Dascade’s web backend.
 
 ### Project Structure
 
@@ -493,8 +807,6 @@ This file simply forwards execution to an existing Dascade example or applicatio
 This page hosts the compiled Dascade application and provides a full-screen surface
 for rendering.
 
----
-
 ### Running the Web Build
 
 From the `web/` directory, the provided workflow is:
@@ -512,9 +824,7 @@ http://localhost:8080
 
 Your Dascade application should appear and run inside the browser.
 
----
-
-### Limitations
+### Web Limitations
 
 Current limitations of the web backend include:
 
@@ -524,8 +834,6 @@ Current limitations of the web backend include:
 - Rendering behavior may differ between browsers
 
 The web backend prioritizes **correctness and portability** over performance.
-
----
 
 ### Contributing to Web Support
 
@@ -539,8 +847,6 @@ Helpful areas include:
 - Backend cleanup and documentation
 
 If you are interested in improving web support, please open an issue or pull request.
-
----
 
 ## FAQ
 
@@ -556,8 +862,6 @@ No. State lives in your application.
 **Is web support production‑ready?**  
 No. It is experimental.
 
----
-
 ## Contributing
 
 Contributions are welcome, especially in the stock Dascade UI package.
@@ -570,13 +874,9 @@ Please:
 
 PRs that simplify the system are preferred over clever abstractions.
 
----
-
 ## License
 
 Open source under the MIT license. See LICENSE for more information.
-
----
 
 ## Author & Maintainer
 
@@ -584,7 +884,4 @@ Open source under the MIT license. See LICENSE for more information.
 
 Creator and primary maintainer of Dascade.
 
-Dascade was started as a personal exploration into building a clean,
-portable, immediate‑mode TUI framework for Dart.
-
----
+Dascade was started as a personal exploration into building a clean, portable, immediate‑mode TUI framework for Dart.
