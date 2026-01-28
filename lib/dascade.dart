@@ -26,7 +26,7 @@ export 'src/runtime/dascade_framework.dart';
 /// UI.
 export 'src/ui/ui.dart';
 export 'src/ui/renderer.dart';
-export '/src/ui/renderer_utils.dart';
+export 'src/ui/renderer_utils.dart';
 export 'src/ui/runtime.dart';
 export 'src/ui/elements/element.dart';
 export 'src/ui/geometry/layout/layout.dart';
@@ -41,6 +41,7 @@ export 'src/ui/elements/button/radio.dart';
 export 'src/ui/elements/layout/spacer.dart';
 export 'src/ui/elements/layout/list.dart';
 export 'src/ui/elements/misc/native.dart';
+export 'src/ui/elements/misc/custom.dart';
 
 /// Rendering primitives.
 export 'src/output/cell.dart';

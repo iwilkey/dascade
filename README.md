@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.png" alt="Example of the Dascade runtime">
+  <img src="assets/hero.png" alt="Dascade hero image">
 </p>
 
 The **D**art **AS**CII **C**onsole **A**pplication **D**evelopment **E**nvironment
@@ -37,7 +37,7 @@ It is designed to be **lightweight, deterministic, and portable**, enabling deve
     - [Windows](#windows)
       - [Building a Native Binary](#building-a-native-binary-2)
       - [Notes](#notes-2)
-  - [Distribution Considerations](#distribution-considerations)
+    - [Distribution Considerations](#distribution-considerations)
 - [Dascade API Overview](#dascade-api-overview)
   - [Application Lifecycle](#application-lifecycle)
   - [Immediate-Mode Frame Loop](#immediate-mode-frame-loop)
@@ -46,18 +46,30 @@ It is designed to be **lightweight, deterministic, and portable**, enabling deve
   - [Keyboard Input](#keyboard-input)
   - [Mouse Input](#mouse-input)
   - [Terminal Dimensions](#terminal-dimensions)
-  - [UI System Overview](#ui-system-overview)
+  - [Animation and Timing](#animation-and-timing)
+  - [Algorithms and Visualization](#algorithms-and-visualization)
+- [UI System Overview](#ui-system-overview)
   - [Layout Containers](#layout-containers)
   - [Lists](#lists)
   - [Text Boxes](#text-boxes)
   - [Buttons](#buttons)
   - [Radio Buttons](#radio-buttons)
   - [Dropdowns](#dropdowns)
-  - [Animation and Timing](#animation-and-timing)
-  - [Algorithms and Visualization](#algorithms-and-visualization)
-  - [Web Backend Usage](#web-backend-usage)
 - [Layout System](#layout-system)
-- [UI Elements (Current)](#ui-elements-current)
+- [Stock UI Elements (Current)](#stock-ui-elements-current)
+- [Custom UI Elements](#custom-ui-elements)
+  - [The Role of DUCustomElement](#the-role-of-ducustomelement)
+  - [Design Contract (Important)](#design-contract-important)
+  - [Creating a Custom Element](#creating-a-custom-element)
+  - [Layout and Rects](#layout-and-rects)
+  - [Focus and Hover](#focus-and-hover)
+  - [Pressable Interaction (Buttons, Steppers, Toggles)](#pressable-interaction-buttons-steppers-toggles)
+  - [Drawing Frames](#drawing-frames)
+  - [Filling Content](#filling-content)
+  - [Drawing Text](#drawing-text)
+  - [Centered Labels](#centered-labels)
+  - [Example: Custom Stepper Element](#example-custom-stepper-element)
+  - [Using Custom Elements in Layouts](#using-custom-elements-in-layouts)
 - [Rendering Model](#rendering-model)
 - [Naming Conventions](#naming-conventions)
 - [Examples](#examples)
@@ -83,7 +95,7 @@ With Dascade, you can build interactive applications directly in the terminal, v
 <p align="center">
   <img
     src="assets/donut.gif"
-    alt="Example of the Dascade runtime"
+    alt="Donut.c ported to Dascade"
     style="max-width: 100%; height: auto;"
   >
 </p>
@@ -387,7 +399,7 @@ Key points:
 - `endFrame()` flushes the frame to the backend
 - State lives in your variables, not in the framework
 
-## Drawing Cells Directly
+### Drawing Cells Directly
 
 At the lowest level, Dascade renders individual cells.
 
@@ -452,7 +464,7 @@ Mouse state includes:
 
 ANSI mouse events are normalized into the same API across platforms.
 
-## Terminal Dimensions
+### Terminal Dimensions
 
 Terminal size is available through the framework handle.
 
@@ -467,7 +479,34 @@ Important:
 
 This pattern appears in maze and visualization examples.
 
-### UI System Overview
+### Animation and Timing
+
+Animation is achieved by updating state each frame.
+
+```dart
+/// In your loop, you can update variables until your heart's content. Their state will be reflected next loop.
+angle += 0.03;
+```
+
+Combined with `Future.delayed`, this enables:
+- Smooth animation
+- Deterministic timing
+- Controlled frame rates
+
+Used in examples like Snake and the ASCII donut.
+
+### Algorithms and Visualization
+
+Because Dascade exposes raw cell drawing, it is well suited for:
+
+- Pathfinding visualization
+- Cellular automata
+- Debugging algorithms
+- Educational tools
+
+The maze and A* examples demonstrate this style.
+
+## UI System Overview
 
 Dascade includes a minimal immediate-mode UI system. UI is optional and layered on top of the renderer.
 
@@ -733,51 +772,7 @@ if(dd.changed) {
 
 Used for configuration-style UIs.
 
-### Animation and Timing
-
-Animation is achieved by updating state each frame.
-
-```dart
-/// In your loop, you can update variables until your heart's content. Their state will be reflected next loop.
-angle += 0.03;
-```
-
-Combined with `Future.delayed`, this enables:
-- Smooth animation
-- Deterministic timing
-- Controlled frame rates
-
-Used in examples like Snake and the ASCII donut.
-
-### Algorithms and Visualization
-
-Because Dascade exposes raw cell drawing, it is well suited for:
-
-- Pathfinding visualization
-- Cellular automata
-- Debugging algorithms
-- Educational tools
-
-The maze and A* examples demonstrate this style.
-
-### Web Backend Usage
-
-The same API is used on the web backend.
-No changes to application code are required.
-
-Only the entry point differs.
-
-```dart
-import '../example/ui/button/button.dart' as app;
-
-void main() {
-  app.main();
-}
-```
-
-Rendering and input are forwarded to a browser-based backend. See Web Development section for more information.
-
-## Layout System
+### Layout System
 
 Dascade layouts live in `ui/elements/layout` and are fully explicit.
 
@@ -793,39 +788,355 @@ Layout behavior:
 
 Layout assigns `DURect`s; elements render within them.
 
-## UI Elements (Current)
+### Stock UI Elements (Current)
 
 Stock elements included in the repository:
 
-### Text
+#### Text
 - Static text rendering
 - ANSI color support
 
-### TextBox
+#### TextBox
 - Editable and read‑only modes
 - Optional borders
 - Keyboard input handling
 
-### Button
+#### Button
 - Clickable via keyboard or mouse
 - Immediate‑mode interaction state
 
-### Radio Button
+#### Radio Button
 - Mutually exclusive selection
 - Stateless rendering, external state control
 
-### Dropdown
+#### Dropdown
 - Expandable selection list
 - Keyboard and mouse interaction
 
-### Native / Misc
+#### Native / Misc
 - Native terminal information elements
 - Debug / inspection helpers
 
-All UI elements:
-- Accept a `border` flag
-- Render only within their assigned rect
-- Maintain no hidden global state
+## Custom UI Elements
+
+Dascade is designed to be *extensible by default*. All built-in UI widgets are
+implemented using the same public contracts that are available to you.
+
+If you can describe your widget as something that:
+- Can be laid out in a 2D grid
+- Renders entirely inside a rectangle
+- Handles interaction explicitly each frame
+
+Then you can build it as a custom Dascade UI element.
+
+This section walks through how to do that using `DUCustomElement`.
+
+### The Role of `DUCustomElement`
+
+`DUCustomElement` is a **batteries-included base class** intended to make authoring
+custom UI widgets straightforward without hiding Dascade’s core philosophy.
+
+It implements `DUElement` and provides:
+- Rect storage and layout handling
+- Border and content rect helpers
+- Standard focus and press semantics
+- Common drawing helpers (frames, fills, labels)
+- Theme-aware rendering helpers
+
+You are free to implement `DUElement` directly, but most custom widgets should
+extend `DUCustomElement`.
+
+### Design Contract (Important)
+
+All custom UI elements must follow these rules:
+
+- Elements **trust the `DURect`** assigned during layout
+- Elements **do not perform layout math**
+- Elements **render entirely inside their assigned rect**
+- All colors should come from `DUITheme`
+- Interaction and rendering are explicit and frame-based
+
+Dascade does not currently support overlays or z-indexing. If your widget cannot
+be expressed inside a single rectangular region, it is likely out of scope for now.
+
+### Creating a Custom Element
+
+A custom element is a class that extends `DUCustomElement` and overrides two methods:
+
+- `interact(DURuntime r)`
+- `render(DURenderer p, DURuntime r)`
+
+Minimal structure:
+
+```dart
+final class DUMyElement extends DUCustomElement {
+
+  DUMyElement() : super(border: true);
+
+  @override
+  void interact(final DURuntime r) {
+    // Handle input and update state
+  }
+
+  @override
+  void render(final DURenderer p, final DURuntime r) {
+    // Draw into the assigned rect
+  }
+}
+```
+
+### Layout and Rects
+
+Each element receives its layout rectangle via `layout()`.
+
+`DUCustomElement` stores this internally and exposes helpers:
+
+- `outerRect` — full bounds (including border)
+- `contentRect` — drawable interior (excludes border)
+
+You should **never** modify the rect or assume global screen coordinates.
+
+Example:
+
+```dart
+final DURect c = contentRect;
+if (c.width <= 0 || c.height <= 0) return;
+```
+
+### Focus and Hover
+
+Focus and hover are managed by the runtime.
+
+Helpers include:
+
+```dart
+bool isFocused(DURuntime r)
+bool isHovered(DURuntime r, {bool contentOnly = false})
+```
+
+To claim focus on click:
+
+```dart
+focusOnClick(r, outerRect);
+```
+
+This pattern is used by nearly all interactive widgets.
+
+### Pressable Interaction (Buttons, Steppers, Toggles)
+
+For button-like widgets, `DUCustomElement` provides standard press semantics.
+
+Call `updatePressable` from `interact`:
+
+```dart
+updatePressable(r);
+```
+
+This populates:
+- `down` — true while held
+- `fire` — true for exactly one frame on release
+
+Mouse and keyboard (Enter) behavior are normalized automatically.
+
+Example:
+
+```dart
+@override
+void interact(final DURuntime r) {
+  updatePressable(r);
+  if (fire) {
+    // perform action
+  }
+}
+```
+
+### Drawing Frames
+
+```dart
+drawFrameIfNeeded(p, r);
+```
+
+Automatically uses theme colors and optional `borderLabel`.
+
+### Filling Content
+
+```dart
+fillContent(p, faceColor(r));
+```
+
+Fills the content area with spaces using the provided theme-aware color.
+
+### Drawing Text
+
+```dart
+drawTextLine(
+  p,
+  contentRect,
+  "Hello",
+  y: contentRect.top,
+  x: contentRect.left,
+  color: theme.text,
+);
+```
+
+Text is clipped to the available width.
+
+### Centered Labels
+
+```dart
+drawCenteredLabel(
+  p,
+  "Hello",
+  color: theme.text,
+);
+```
+
+If the content height is even, an underline row is drawn to maintain visual centering.
+
+### Example: Custom Stepper Element
+
+The following is a real example of a custom element implemented by extending
+`DUCustomElement`.
+
+It demonstrates:
+- Multiple interactive regions inside one rect
+- Mouse and keyboard interaction
+- Theme-aware rendering
+- Explicit state management
+
+```dart
+final class DUStepper extends DUCustomElement {
+
+  final int min;
+  final int max;
+  int value;
+
+  DUStepper({
+    required super.border,
+    super.borderLabel,
+    super.theme,
+    required this.min,
+    required this.max,
+    required this.value,
+  });
+
+  bool _downMinus = false;
+  bool _downPlus = false;
+  bool _fireMinus = false;
+  bool _firePlus = false;
+  bool _prevEnter = false;
+
+  @override
+  void interact(final DURuntime r) {
+    focusOnClick(r, outerRect);
+
+    _fireMinus = false;
+    _firePlus = false;
+
+    final DURect c = contentRect;
+    if (c.width <= 0 || c.height <= 0) return;
+
+    final int mid = c.left + (c.width ~/ 2);
+
+    final DURect minusRect = DURect(
+      upperLeft: DUPoint(x: c.left, y: c.top),
+      lowerRight: DUPoint(x: mid, y: c.bottom),
+    );
+
+    final DURect plusRect = DURect(
+      upperLeft: DUPoint(x: mid, y: c.top),
+      lowerRight: DUPoint(x: c.right, y: c.bottom),
+    );
+
+    _downMinus = identical(r.active, this) && r.mouseDown && r.hovered(minusRect);
+    _downPlus = identical(r.active, this) && r.mouseDown && r.hovered(plusRect);
+
+    if (r.mousePressed && r.hovered(c)) {
+      r.active = this;
+    }
+    if (r.mouseReleased && identical(r.active, this)) {
+      if (r.hovered(minusRect)) _fireMinus = true;
+      if (r.hovered(plusRect)) _firePlus = true;
+    }
+
+    final bool enterDown = r.enter;
+    final bool enterReleased = !enterDown && _prevEnter;
+    _prevEnter = enterDown;
+
+    if (isFocused(r) && enterReleased) {
+      _firePlus = true;
+    }
+
+    if (_fireMinus) {
+      value = math.max(min, value - 1);
+    }
+    if (_firePlus) {
+      value = math.min(max, value + 1);
+    }
+
+    down = _downMinus || _downPlus;
+    fire = _fireMinus || _firePlus;
+  }
+
+  @override
+  void render(final DURenderer p, final DURuntime r) {
+    drawFrameIfNeeded(p, r);
+
+    final DURect c = contentRect;
+    if (c.width <= 0 || c.height <= 0) return;
+
+    final DUIColor baseFace = faceColor(r);
+    fillContent(p, baseFace);
+
+    final int mid = c.left + (c.width ~/ 2);
+
+    final DURect minusRect = DURect(
+      upperLeft: DUPoint(x: c.left, y: c.top),
+      lowerRight: DUPoint(x: mid, y: c.bottom),
+    );
+
+    final DURect plusRect = DURect(
+      upperLeft: DUPoint(x: mid, y: c.top),
+      lowerRight: DUPoint(x: c.right, y: c.bottom),
+    );
+
+    final DUIColor downFace =
+        isFocused(r) ? theme.buttonDownFocused : theme.buttonDown;
+
+    if (_downMinus) {
+      fillRect(p, minusRect, glyph: 0x20, color: downFace);
+    }
+    if (_downPlus) {
+      fillRect(p, plusRect, glyph: 0x20, color: downFace);
+    }
+
+    final DUIColor textColor = DUIColor(
+      fg: theme.text.fg,
+      bg: baseFace.bg,
+      bold: theme.text.bold,
+    );
+
+    final String label = '[-]  ${value.toString().padLeft(2, "0")}  [+]';
+    drawCenteredLabel(p, label, color: textColor);
+  }
+}
+```
+
+### Using Custom Elements in Layouts
+
+Custom elements are regular `DUElement`s and can be used anywhere a stock element
+can be used.
+
+```dart
+d.ui.root(
+  d.ui.column(
+    <DUElement>[log, stepper, progress],
+    layout: DULayout.flex([2, 1, 1]),
+  ),
+);
+```
+
+No registration or special handling is required.
 
 **Contributions are welcome, especially in expanding the set of built-in Dascade UI elements.**
 
